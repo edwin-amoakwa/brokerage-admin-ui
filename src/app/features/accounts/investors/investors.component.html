@@ -63,7 +63,7 @@
       </tr>
     </ng-template>
     <ng-template #body let-row>
-      <tr class="row" (click)="open(row)">
+      <tr class="inv-row" (click)="open(row)">
         <td>
           <a class="inv" [href]="'/accounts/investors/' + row.id" (click)="$event.preventDefault()">
             <span class="avatar">{{ row.initials }}</span>
