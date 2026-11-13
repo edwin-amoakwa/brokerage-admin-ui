@@ -1,0 +1,72 @@
+@if (investor) {
+  @if (showHeader) {
+    <div class="kyc-head">
+      @if (investor.profileImage) {
+        <img [src]="investor.profileImage" alt="" class="avatar" />
+      } @else {
+        <span class="avatar">{{ investor.initials }}</span>
+      }
+      <div>
+        <div class="name">{{ investor.displayName }}</div>
+        <div class="muted">{{ investor.investorCode }} · {{ investor.investorTypeName || '-' }}</div>
+      </div>
+      <span class="pill" [class]="stage.tone">{{ stage.label }}</span>
+    </div>
+  }
+
+  <div class="kyc">
+    <nav class="panel kyc-nav" aria-label="KYC sections">
+      <div class="nav-head">
+        <span>Sections</span>
+        <label><input type="checkbox" [(ngModel)]="onlyGaps" /> Only gaps</label>
+      </div>
+      @for (v of views; track v.section.id) {
+        <a href="#" (click)="scrollTo(v.section.id, $event)">
+          <span class="dot" [class]="v.status.state"></span>
+          <span class="grow">{{ v.section.title }}</span>
+          <span class="muted small">{{ v.status.filled }}/{{ v.status.total }}</span>
+        </a>
+      }
+    </nav>
+
+    <div class="kyc-body">
+      @for (v of shown; track v.section.id) {
+        <section class="panel" [id]="'kyc-' + v.section.id">
+          <div class="panel-head">
+            <div class="title">
+              <h2>{{ v.section.title }}</h2>
+              @if (v.status.requiredMissing.length) {
+                <span class="chip bad">{{ v.status.requiredMissing.length }} required missing</span>
+              } @else if (v.status.missing) {
+                <span class="chip warn">{{ v.status.missing }} missing</span>
+              }
+            </div>
+            @if (editable) {
+              <button type="button" class="edit-btn" (click)="edit.emit(v.section.id)">Edit</button>
+            }
+          </div>
+          <dl class="grid">
+            @for (f of v.fields; track $index) {
+              <div>
+                <dt>{{ f.field.label }}@if (f.field.required) {<span class="req">*</span>}</dt>
+                @if (!f.filled) {
+                  <dd class="empty" [class.required]="f.field.required">Not provided</dd>
+                } @else {
+                  @switch (f.field.type) {
+                    @case ('date') { <dd>{{ f.value | date: 'd MMM y' }}</dd> }
+                    @case ('bool') { <dd>{{ f.value ? 'Yes' : 'No' }}</dd> }
+                    @case ('money') { <dd>GHS {{ f.value | number: '1.2-2' }}</dd> }
+                    @case ('image') { <dd><img [src]="f.value" [alt]="f.field.label" class="kyc-image" /></dd> }
+                    @default { <dd>{{ f.value }}</dd> }
+                  }
+                }
+              </div>
+            }
+          </dl>
+        </section>
+      } @empty {
+        <div class="panel muted">Every section is complete.</div>
+      }
+    </div>
+  </div>
+}

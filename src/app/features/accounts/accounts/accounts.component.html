@@ -1,0 +1,169 @@
+@if (!record) {
+  <app-page-header title="Accounts" subtitle="Client trading accounts and their holders">
+    <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="refresh()" />
+    <p-button label="Add New Account" icon="pi pi-plus" (onClick)="create()" />
+  </app-page-header>
+
+  <app-stat-tiles [tiles]="tiles" [clickable]="true" (tileClick)="filter($event)" />
+
+  <div class="card">
+    <div class="table-toolbar">
+      <input pInputText [(ngModel)]="keyword" placeholder="Search account code, depository code, name or investor" (keyup.enter)="reload()" class="search-input" />
+      <p-button label="Search" icon="pi pi-search" severity="secondary" [outlined]="true" (onClick)="reload()" />
+      <span class="muted">Showing {{ rows.length }} of {{ total }} accounts</span>
+    </div>
+    <p-table [value]="rows" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 20, 50]"
+             [totalRecords]="total" [loading]="loading" size="small" dataKey="id" [first]="first">
+      <ng-template #header>
+        <tr>
+          <th style="width: 3rem"></th><th>Account</th><th>Depository Code</th><th>Account Type</th><th>Classification</th>
+          <th>Stock Exchange</th><th>Principal Investor</th><th class="actions-col"></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row let-expanded="expanded">
+        <tr>
+          <td><p-button type="button" [pRowToggler]="row" [text]="true" [rounded]="true" size="small" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" ariaLabel="Details" /></td>
+          <td>
+            <div class="acc-cell">
+              <span class="avatar">{{ row.stockExchangeCode || '-' }}</span>
+              <div><div class="strong">{{ row.accountCode }}</div><div class="muted small">{{ row.accountName }}</div></div>
+            </div>
+          </td>
+          <td>{{ row.depositoryCode }}</td>
+          <td>@if (row.accountType) { <p-tag [value]="row.accountTypeName" [severity]="typeSeverity(row.accountType)" /> }</td>
+          <td>{{ row.classificationName }}</td>
+          <td>{{ row.stockExchangeName }}</td>
+          <td>{{ row.principalInvestorName }}</td>
+          <td class="actions-col">
+            <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="edit(row)" ariaLabel="Edit" />
+            <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="remove(row)" ariaLabel="Delete" />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #expandedrow let-row>
+        <tr>
+          <td colspan="8">
+            <div class="detail-grid">
+              <div><div class="label">Account Code</div><div class="value">{{ row.accountCode }}</div></div>
+              <div><div class="label">Depository Code</div><div class="value">{{ row.depositoryCode || '-' }}</div></div>
+              <div><div class="label">Account Name</div><div class="value">{{ row.accountName }}</div></div>
+              <div><div class="label">Account Type</div><div class="value">{{ row.accountTypeName || '-' }}</div></div>
+              <div><div class="label">Classification</div><div class="value">{{ row.classificationName || '-' }}</div></div>
+              <div><div class="label">Stock Exchange</div><div class="value">{{ row.stockExchangeName || '-' }}</div></div>
+              <div><div class="label">Principal Investor</div><div class="value">{{ row.principalInvestorName || '-' }}</div></div>
+              <div><div class="label">Opened</div><div class="value">{{ (row.valueDate | date: 'dd/MM/yyyy') || '-' }}</div></div>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="8">No accounts found.</td></tr></ng-template>
+    </p-table>
+  </div>
+} @else {
+  <app-page-header [title]="record.id ? record.accountName : 'Add New Account'"
+                   [subtitle]="record.id ? record.accountCode : 'The account code is generated when you save'">
+    @if (record.accountType) { <p-tag [value]="typeName(record.accountType)" [severity]="typeSeverity(record.accountType)" /> }
+    @if (record.id) {
+      <p-button label="Delete" icon="pi pi-trash" severity="danger" [outlined]="true" [disabled]="!!record.deleteBlockedReason"
+                [title]="record.deleteBlockedReason ? 'This account still has ' + record.deleteBlockedReason : ''" (onClick)="remove(record)" />
+    }
+  </app-page-header>
+
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-title">Principal Investor</div>
+        <app-entity-picker kind="investor" [value]="principal" (selected)="selectPrincipal($event)" />
+        <div class="section-title">Ownership</div>
+        @if (principal) {
+          <div class="acc-cell">
+            <span class="avatar">{{ initials(principal) }}</span>
+            <div>
+              <div class="strong">{{ principal.displayName }}</div>
+              <div class="muted small">{{ principal.emailAddress || 'No email on file' }}</div>
+            </div>
+          </div>
+        } @else {
+          <p class="muted">No investor selected. Search for the principal investor above.</p>
+        }
+
+        <div class="section-title">Additional Holders</div>
+        @if (!isMulti()) {
+          <p class="muted small">This account type has one holder. Choose Joint or ITF to add co-holders.</p>
+        } @else if (!record.id) {
+          <p class="muted small">Save the account first, then add its co-holders.</p>
+        } @else {
+          <p-table [value]="record.holders || []" size="small">
+            <ng-template #header><tr><th>Investor</th><th>ID Number</th><th class="actions-col"></th></tr></ng-template>
+            <ng-template #body let-h>
+              <tr>
+                <td>{{ h.investorName }}</td>
+                <td>{{ h.idNumber }}</td>
+                <td class="actions-col"><p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="removeHolder(h)" ariaLabel="Remove" /></td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage><tr><td colspan="3">No co-holders yet.</td></tr></ng-template>
+          </p-table>
+          <div class="holder-add">
+            <app-entity-picker kind="investor" [value]="newHolder" placeholder="Pick a co-holder" (selected)="newHolder = $event" />
+            <p-button label="Add holder" icon="pi pi-user-plus" [disabled]="!newHolder" (onClick)="addHolder()" />
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-title">Account Details</div>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="field-label">Account Code</label>
+            <input pInputText [value]="record.accountCode || 'Generated on save'" disabled class="w-full" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">Opening Date<span class="req">*</span></label>
+            <input type="date" pInputText [(ngModel)]="record.valueDate" class="w-full" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">Credit Limit</label>
+            <input pInputText [(ngModel)]="record.creditLimit" class="w-full" inputmode="decimal" />
+          </div>
+          <div class="col-md-8">
+            <label class="field-label">Account Name<span class="req">*</span></label>
+            <input pInputText [(ngModel)]="record.accountName" class="w-full" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">Depository Code<span class="req">*</span></label>
+            <input pInputText [(ngModel)]="record.depositoryCode" class="w-full" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">Stock Exchange<span class="req">*</span></label>
+            <p-select [(ngModel)]="record.stockExchangeId" [options]="exchanges" optionLabel="itemName" optionValue="id" [filter]="true" placeholder="Select" class="w-full" appendTo="body" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">Account Type<span class="req">*</span></label>
+            <p-select [(ngModel)]="record.accountType" [options]="accountTypes" optionLabel="itemName" optionValue="id" placeholder="Select" class="w-full" appendTo="body" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">Classification<span class="req">*</span></label>
+            <p-select [(ngModel)]="record.classification" [options]="classifications" optionLabel="itemName" optionValue="id" placeholder="Select" class="w-full" appendTo="body" />
+          </div>
+        </div>
+
+        @if (record.id && record.references) {
+          <div class="section-title">Linked Records</div>
+          <app-stat-tiles [tiles]="referenceTiles" />
+          @if (record.deleteBlockedReason) {
+            <p class="muted small">Delete is disabled - this account still has {{ record.deleteBlockedReason }}.</p>
+          }
+        }
+
+        <div class="form-actions">
+          <p-button label="Close" severity="secondary" [outlined]="true" (onClick)="close()" />
+          <p-button label="Clear" severity="secondary" [outlined]="true" (onClick)="clear()" />
+          <p-button label="Save" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+        </div>
+      </div>
+    </div>
+  </div>
+}

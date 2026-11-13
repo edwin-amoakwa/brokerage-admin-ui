@@ -1,0 +1,108 @@
+@if (!record) {
+  <app-page-header [title]="bonus ? 'Bonus Shares' : 'Dividends'" [subtitle]="bonus ? 'Bonus share issues declared on stocks' : 'Cash dividends declared on stocks'">
+    <p-button label="Load" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="reload()" />
+    <p-button [label]="bonus ? 'Add new Bonus Issue' : 'Add new Dividend'" icon="pi pi-plus" (onClick)="create()" />
+  </app-page-header>
+
+  <app-stat-tiles [tiles]="tiles" [clickable]="true" (tileClick)="clearSearch()" />
+
+  <div class="card">
+    <div class="table-toolbar">
+      <input pInputText [(ngModel)]="keyword" placeholder="Stock symbol or name" (keyup.enter)="reload()" />
+      <p-button label="Search" icon="pi pi-search" severity="secondary" [outlined]="true" (onClick)="reload()" />
+      <span class="muted">{{ total }} of {{ summary.totalCount ?? 0 }}</span>
+    </div>
+    <p-table [value]="rows" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="10" [first]="first"
+             [totalRecords]="total" [loading]="loading" size="small">
+      <ng-template #header>
+        <tr>
+          <th>Stock</th>
+          @if (bonus) { <th>Ratio</th><th>Declare Date</th><th>Qualification Date</th><th>Crediting Date</th> }
+          @else { <th class="text-right">Amount Per Share</th><th>Declare Date</th><th>Ex Date</th><th>Payment Date</th> }
+          <th>Status</th><th class="actions-col"></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-r>
+        <tr>
+          <td><strong>{{ r.stockSymbol }}</strong> <span class="muted">{{ r.stockName }}</span></td>
+          @if (bonus) {
+            <td>{{ r.ratio }}</td>
+            <td>{{ r.declareDate | date: 'dd/MM/yyyy' }}</td>
+            <td>{{ r.qualificationDate | date: 'dd/MM/yyyy' }}</td>
+            <td>{{ r.creditingDate | date: 'dd/MM/yyyy' }}</td>
+          } @else {
+            <td class="text-right">{{ r.amountPerShare | number: '1.2-4' }}</td>
+            <td>{{ r.declareDate | date: 'dd/MM/yyyy' }}</td>
+            <td>{{ r.exDate | date: 'dd/MM/yyyy' }}</td>
+            <td>{{ r.paymentDate | date: 'dd/MM/yyyy' }}</td>
+          }
+          <td><p-tag [value]="r.status === 'EXECUTED' ? 'Processed' : r.statusName" [severity]="r.unprocessed ? 'warn' : 'success'" /></td>
+          <td class="actions-col">
+            @if (r.unprocessed) {
+              <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="edit(r)" ariaLabel="Edit" />
+              <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="remove(r)" ariaLabel="Delete" />
+            }
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="7">Nothing recorded yet.</td></tr></ng-template>
+    </p-table>
+  </div>
+} @else {
+  <app-page-header [title]="(record.id ? 'Edit ' : 'New ') + (bonus ? 'Bonus Issue' : 'Dividend')" />
+  <div class="card">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="field-label">Stock<span class="req">*</span></label>
+        <p-select [(ngModel)]="record.stockId" [options]="stocks" optionLabel="itemName" optionValue="id" [filter]="true" class="w-full" appendTo="body" />
+      </div>
+      @if (bonus) {
+        <div class="col-md-3">
+          <label class="field-label">Bonus shares<span class="req">*</span></label>
+          <p-inputnumber [(ngModel)]="record.bonusShares" [maxFractionDigits]="0" class="w-full" inputStyleClass="w-full" />
+        </div>
+        <div class="col-md-3">
+          <label class="field-label">Qualification shares<span class="req">*</span></label>
+          <p-inputnumber [(ngModel)]="record.qualificationShares" [maxFractionDigits]="0" class="w-full" inputStyleClass="w-full" />
+        </div>
+        @if (record.bonusShares > 0 && record.qualificationShares > 0) {
+          <div class="col-md-12 muted">1 bonus share for every {{ record.qualificationShares / record.bonusShares | number: '1.0-4' }} held</div>
+        }
+        <div class="col-md-4">
+          <label class="field-label">Declare date</label>
+          <input type="date" pInputText [(ngModel)]="record.declareDate" class="w-full" />
+        </div>
+        <div class="col-md-4">
+          <label class="field-label">Qualification date</label>
+          <input type="date" pInputText [(ngModel)]="record.qualificationDate" class="w-full" />
+        </div>
+        <div class="col-md-4">
+          <label class="field-label">Crediting date</label>
+          <input type="date" pInputText [(ngModel)]="record.creditingDate" class="w-full" />
+        </div>
+      } @else {
+        <div class="col-md-6">
+          <label class="field-label">Amount per share<span class="req">*</span></label>
+          <p-inputnumber [(ngModel)]="record.amountPerShare" [minFractionDigits]="2" [maxFractionDigits]="4" class="w-full" inputStyleClass="w-full" />
+        </div>
+        <div class="col-md-4">
+          <label class="field-label">Declare date</label>
+          <input type="date" pInputText [(ngModel)]="record.declareDate" class="w-full" />
+        </div>
+        <div class="col-md-4">
+          <label class="field-label">Ex date</label>
+          <input type="date" pInputText [(ngModel)]="record.exDate" class="w-full" />
+        </div>
+        <div class="col-md-4">
+          <label class="field-label">Payment date</label>
+          <input type="date" pInputText [(ngModel)]="record.paymentDate" class="w-full" />
+        </div>
+      }
+    </div>
+    <div class="form-actions">
+      <p-button label="Close" severity="secondary" [outlined]="true" (onClick)="record = null" />
+      <p-button label="Clear" severity="secondary" [outlined]="true" (onClick)="clear()" />
+      <p-button label="Save" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+    </div>
+  </div>
+}

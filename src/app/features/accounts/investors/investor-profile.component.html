@@ -1,0 +1,331 @@
+<a class="back" routerLink="/accounts/investors"><i class="pi pi-angle-left"></i> Investors</a>
+
+@if (data) {
+  <section class="panel head">
+    <div class="head-top">
+      <div class="who">
+        @if (inv.profileImage) {
+          <img [src]="inv.profileImage" alt="" class="avatar lg" />
+        } @else {
+          <span class="avatar lg">{{ inv.initials }}</span>
+        }
+        <div class="who-text">
+          <div class="name-row">
+            <h1>{{ inv.displayName }}</h1>
+            <span class="pill" [class]="stage.tone">{{ stage.label }}</span>
+            @for (f of flagChips; track f.label) { <span class="chip" [class]="f.tone">{{ f.label }}</span> }
+          </div>
+          <div class="meta">
+            <span>{{ inv.investorCode || 'No code' }}</span>
+            <span>{{ inv.investorTypeName || '-' }}</span>
+            @if (inv.mobilePhone) { <span>{{ inv.mobilePhone }}</span> }
+            @if (inv.emailAddress) { <span>{{ inv.emailAddress }}</span> }
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        @if (canPassword) {
+          <p-button label="Reset portal password" severity="secondary" [outlined]="true" (onClick)="openPassword()" />
+        }
+        @if (stageAction; as a) {
+          <p-button [label]="a.label" severity="secondary" [outlined]="true" (onClick)="goStage()" />
+        }
+        <p-button label="Edit details" icon="pi pi-pencil" (onClick)="edit()" />
+      </div>
+    </div>
+
+    <ol class="steps" aria-label="Onboarding progress">
+      @for (s of steps; track s.label) {
+        <li [class.done]="s.done">
+          <span class="bar"></span>
+          <strong>{{ s.label }}</strong>
+          <small>{{ s.note }}</small>
+        </li>
+      }
+    </ol>
+
+    <nav class="tabs" aria-label="Profile sections">
+      @for (t of tabs; track t.key) {
+        <button type="button" [class.active]="tab === t.key" [attr.aria-current]="tab === t.key ? 'page' : null" (click)="setTab(t.key)">
+          {{ t.label }}
+          @if (count(t.key) !== null) { <span class="count">{{ count(t.key) }}</span> }
+        </button>
+      }
+    </nav>
+  </section>
+
+  <!-- OVERVIEW -->
+  @if (tab === 'overview') {
+    <div class="cols">
+      <div class="main">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Trading accounts</h2>
+            <button type="button" class="link" (click)="setTab('accounts')">All accounts</button>
+          </div>
+          <div class="acct-grid">
+            @for (a of data.accounts; track a.id) {
+              <div class="acct">
+                <div class="acct-top">
+                  <div>
+                    <strong>{{ a.accountName }}</strong>
+                    <small>{{ a.accountCode }} · Depository {{ a.depositoryCode || '-' }}</small>
+                  </div>
+                  <span class="chip" [class.info]="a.role !== 'Principal'">{{ a.role }}</span>
+                </div>
+                <div class="acct-meta">
+                  <span>{{ a.accountTypeName || '-' }}</span><span>{{ a.classificationName || '-' }}</span>
+                  @if (a.exchangeCode) { <span>{{ a.exchangeCode }}</span> }
+                  @if (a.opened) { <span>Opened {{ a.opened | date: 'dd MMM y' }}</span> }
+                </div>
+                <div class="acct-money">
+                  <div><small>Settled cash</small><b>{{ a.cashBalance == null ? '-' : 'GHS ' + (a.cashBalance | number: '1.2-2') }}</b></div>
+                  <div><small>Portfolio value</small><b>{{ a.portfolioValue == null ? '-' : 'GHS ' + (a.portfolioValue | number: '1.2-2') }}</b></div>
+                </div>
+                @if (canPortfolio) {
+                  <a class="link-sm" routerLink="/accounts/portfolio" [queryParams]="{ accountId: a.id }">Open portfolio</a>
+                }
+              </div>
+            } @empty {
+              <p class="muted">No trading account yet.</p>
+            }
+          </div>
+        </section>
+
+        <div class="two">
+          <section class="panel">
+            <div class="panel-head"><h2>Contact and address</h2><button type="button" class="link" (click)="edit('contact')">Edit</button></div>
+            <dl class="pairs">
+              <dt>Mobile</dt><dd>{{ inv.mobilePhone || '-' }}</dd>
+              <dt>Email</dt><dd>{{ inv.emailAddress || '-' }}</dd>
+              <dt>Residential</dt><dd>{{ inv.residentialAddress || '-' }}</dd>
+              <dt>Postal</dt><dd>{{ inv.postalAddress || '-' }}</dd>
+              <dt>Digital address</dt><dd>{{ inv.digitalAddressGps || '-' }}</dd>
+              <dt>Emergency</dt>
+              <dd>{{ emergencyText || '-' }}</dd>
+            </dl>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>Identification</h2><button type="button" class="link" (click)="edit('identification')">Edit</button></div>
+            <dl class="pairs">
+              <dt>ID type</dt><dd>{{ inv.validIdName || '-' }}</dd>
+              <dt>ID number</dt><dd>{{ inv.idNumber || '-' }}</dd>
+              <dt>Issued</dt><dd>{{ (inv.idIssueDate | date: 'dd MMM y') || '-' }}{{ inv.placeOfIdIssued ? ' · ' + inv.placeOfIdIssued : '' }}</dd>
+              <dt>Expires</dt>
+              <dd>{{ (inv.idExpiryDate | date: 'dd MMM y') || '-' }}
+                @if (idValidity; as v) { <span class="validity" [class]="v.tone">· {{ v.text }}</span> }
+              </dd>
+              @if (inv.investorType === 'CORPORATE') {
+                <dt>Incorporated</dt><dd>{{ (inv.corporateIncorporationDate | date: 'dd MMM y') || '-' }}</dd>
+              } @else {
+                <dt>Born</dt><dd>{{ (inv.birthDate | date: 'dd MMM y') || '-' }}{{ inv.birthPlace ? ' · ' + inv.birthPlace : '' }}</dd>
+              }
+              <dt>Nationality</dt><dd>{{ inv.nationalityName || '-' }}{{ inv.residentialStatusName ? ' · ' + inv.residentialStatusName : '' }}</dd>
+            </dl>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Beneficiaries</h2>
+            <span class="alloc" [class.warn]="allocated < 100">{{ allocated | number: '1.0-2' }}% allocated</span>
+          </div>
+          @if (data.beneficiaries?.length) {
+            <div class="alloc-bar" aria-hidden="true">
+              @for (b of data.beneficiaries; track b.id; let i = $index) {
+                <span [style.width.%]="b.percentageAllocation" [class.alt]="i % 2 === 1"></span>
+              }
+            </div>
+            <div class="table-scroll">
+              <table class="plain">
+                <thead><tr><th>Name</th><th>Relationship</th><th>Phone</th><th class="num">Share</th></tr></thead>
+                <tbody>
+                  @for (b of data.beneficiaries; track b.id) {
+                    <tr><td>{{ b.beneficiaryName }}</td><td>{{ b.relationshipName || '-' }}</td><td>{{ b.beneficiaryPhone || '-' }}</td><td class="num"><b>{{ b.percentageAllocation | number: '1.0-2' }}%</b></td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            @if (allocated < 100) { <p class="warn-note">{{ 100 - allocated | number: '1.0-2' }}% not yet allocated to anyone.</p> }
+          } @else {
+            <p class="muted">No beneficiaries recorded. <button type="button" class="link" (click)="edit('beneficiaries')">Add beneficiaries</button></p>
+          }
+        </section>
+      </div>
+
+      <aside class="side">
+        <section class="panel">
+          <div class="panel-head"><h2>KYC completeness</h2><b>{{ kycDone }} of {{ kyc.length }}</b></div>
+          @for (k of kyc; track k.id) {
+            <button type="button" class="kyc-row" (click)="setTab('kyc')">
+              <span class="dot" [class]="k.state"></span>
+              <span class="grow">{{ k.title }}</span>
+              @if (k.requiredMissing.length) { <small class="bad">{{ k.requiredMissing.length }} required</small> }
+              @else if (k.missing) { <small class="warn">{{ k.missing }} missing</small> }
+            </button>
+          }
+        </section>
+
+        <section class="panel">
+          <h2>Compliance and risk</h2>
+          <dl class="pairs right">
+            <dt>PEP</dt><dd>{{ inv.pepInGhana || inv.pepOutsideGhana ? 'Yes' : 'No' }}</dd>
+            <dt>FATCA / CRS reportable</dt><dd>{{ fatca ? 'Yes' : 'No' }}</dd>
+            <dt>Source of funds</dt><dd>{{ inv.sourceOfFundsName || '-' }}</dd>
+            <dt>Risk assessment score</dt><dd>{{ data.riskScore ?? '-' }}</dd>
+            <dt>Risk level</dt><dd>@if (inv.riskLevelName) { <span class="chip warn">{{ inv.riskLevelName }}</span> } @else { - }</dd>
+          </dl>
+        </section>
+
+        <section class="panel">
+          <h2>Portal and alerts</h2>
+          <div class="login-row">
+            <label for="portal-login">
+              <span>Portal login</span>
+              <small class="muted">{{ inv.lastLogin ? 'Last signed in ' + (inv.lastLogin | date: 'd MMM y, HH:mm') : 'No sign-in recorded' }}</small>
+            </label>
+            <p-toggleswitch inputId="portal-login" [ngModel]="inv.active" (ngModelChange)="toggleLogin($event)" [disabled]="togglingLogin" />
+          </div>
+          <div class="chips">
+            @for (a of alerts; track a.label) { <span class="pill" [class.ok]="a.on">{{ a.label }}{{ a.on ? '' : ' off' }}</span> }
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Recent activity</h2><button type="button" class="link" (click)="setTab('activity')">All activity</button></div>
+          @for (e of data.activity.slice(0, 5); track $index) {
+            <div class="event"><span class="when">{{ e.at | date: 'd MMM' }}</span><span>{{ e.description }}</span></div>
+          } @empty { <p class="muted">No activity recorded.</p> }
+        </section>
+      </aside>
+    </div>
+  }
+
+  <!-- KYC DETAILS -->
+  @if (tab === 'kyc') {
+    <app-investor-kyc [investor]="inv" [editable]="true" (edit)="edit($event)" />
+  }
+
+  <!-- ACCOUNTS -->
+  @if (tab === 'accounts') {
+    <section class="panel">
+      <div class="table-scroll">
+        <table class="plain wide">
+          <thead><tr><th>Account</th><th>Role</th><th>Type</th><th>Classification</th><th>Depository</th><th>Opened</th><th class="num">Settled cash</th><th class="num">Portfolio value</th><th></th></tr></thead>
+          <tbody>
+            @for (a of data.accounts; track a.id) {
+              <tr>
+                <td><strong>{{ a.accountCode }}</strong><br /><small class="muted">{{ a.accountName }}</small></td>
+                <td><span class="chip" [class.info]="a.role !== 'Principal'">{{ a.role }}</span></td>
+                <td>{{ a.accountTypeName || '-' }}</td>
+                <td>{{ a.classificationName || '-' }}</td>
+                <td>{{ a.depositoryCode || '-' }}</td>
+                <td class="nowrap">{{ a.opened | date: 'dd MMM y' }}</td>
+                <td class="num">{{ a.cashBalance == null ? '-' : (a.cashBalance | number: '1.2-2') }}</td>
+                <td class="num">{{ a.portfolioValue == null ? '-' : (a.portfolioValue | number: '1.2-2') }}</td>
+                <td class="num nowrap">
+                  @if (canPortfolio) { <a routerLink="/accounts/portfolio" [queryParams]="{ accountId: a.id }">Portfolio</a> }
+                  @if (canCash) { <a class="ml" routerLink="/cash/transactions" [queryParams]="{ accountId: a.id, accountCode: a.accountCode }">Cash</a> }
+                </td>
+              </tr>
+            } @empty { <tr><td colspan="9" class="muted">No trading account yet.</td></tr> }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  <!-- BENEFICIARIES -->
+  @if (tab === 'beneficiaries') {
+    <section class="panel">
+      <div class="panel-head">
+        <span class="alloc" [class.warn]="allocated < 100">{{ allocated | number: '1.0-2' }}% of 100% allocated</span>
+        <p-button label="Edit beneficiaries" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="edit('beneficiaries')" />
+      </div>
+      <div class="table-scroll">
+        <table class="plain wide">
+          <thead><tr><th>Name</th><th>Relationship</th><th>Phone</th><th>Email</th><th>Next of kin</th><th class="num">Share</th></tr></thead>
+          <tbody>
+            @for (b of data.beneficiaries; track b.id) {
+              <tr>
+                <td>{{ b.beneficiaryName }}</td><td>{{ b.relationshipName || '-' }}</td><td>{{ b.beneficiaryPhone || '-' }}</td>
+                <td>{{ b.beneficiaryEmail || '-' }}</td><td>{{ b.nokName ? b.nokName + (b.nokPhone ? ' · ' + b.nokPhone : '') : '-' }}</td>
+                <td class="num"><b>{{ b.percentageAllocation | number: '1.0-2' }}%</b></td>
+              </tr>
+            } @empty { <tr><td colspan="6" class="muted">No beneficiaries recorded.</td></tr> }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  <!-- BANK AND WALLETS -->
+  @if (tab === 'bank') {
+    <section class="panel">
+      <div class="panel-head"><h2>Bank details on the KYC form</h2><button type="button" class="link" (click)="edit('bank')">Edit</button></div>
+      <dl class="pairs">
+        <dt>Bank</dt><dd>{{ inv.bankName || '-' }}</dd>
+        <dt>Branch</dt><dd>{{ inv.bankBranchName || '-' }}</dd>
+        <dt>Account name</dt><dd>{{ inv.bankAccountName || '-' }}</dd>
+        <dt>Account number</dt><dd>{{ inv.bankAccountNumber || '-' }}</dd>
+      </dl>
+    </section>
+    <section class="panel gap-top">
+      <h2>Other bank accounts</h2>
+      <div class="table-scroll">
+        <table class="plain wide">
+          <thead><tr><th>Bank</th><th>Branch</th><th>Account name</th><th>Account number</th><th>Status</th></tr></thead>
+          <tbody>
+            @for (b of data.bankAccounts; track $index) {
+              <tr><td>{{ b.bankName || '-' }}</td><td>{{ b.branchName || '-' }}</td><td>{{ b.accountName || '-' }}</td><td>{{ b.accountNo || '-' }}</td>
+                <td><span class="pill" [class.ok]="b.active">{{ b.active ? 'Active' : 'Inactive' }}</span></td></tr>
+            } @empty { <tr><td colspan="5" class="muted">None recorded.</td></tr> }
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="panel gap-top">
+      <h2>Payout wallets</h2>
+      <div class="table-scroll">
+        <table class="plain wide">
+          <thead><tr><th>Account</th><th>Type</th><th>Label</th><th>Number</th><th>Bank</th><th>Status</th></tr></thead>
+          <tbody>
+            @for (w of data.wallets; track $index) {
+              <tr><td>{{ w.accountCode }}</td><td>{{ w.walletType || '-' }}</td><td>{{ w.walletLabel || '-' }}</td><td>{{ w.paymentNo || '-' }}</td><td>{{ w.bankName || '-' }}</td>
+                <td><span class="pill" [class.ok]="w.active">{{ w.active ? 'Active' : 'Inactive' }}</span></td></tr>
+            } @empty { <tr><td colspan="6" class="muted">None added. Clients add wallets in the client portal.</td></tr> }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  <!-- ACTIVITY -->
+  @if (tab === 'activity') {
+    <section class="panel">
+      @for (e of data.activity; track $index) {
+        <div class="event">
+          <span class="when">{{ e.at | date: 'd MMM y, HH:mm' }}</span>
+          <span class="grow">{{ e.description }}{{ e.accountCode ? ' · ' + e.accountCode : '' }}</span>
+          <span class="chip" [class.info]="e.kind === 'contact'">{{ e.kind === 'contact' ? 'Contact log' : 'System' }}</span>
+        </div>
+      } @empty { <p class="muted">No activity recorded.</p> }
+    </section>
+  }
+} @else if (loading) {
+  <p class="muted">Loading…</p>
+}
+
+<p-dialog header="Reset portal password" [(visible)]="showPassword" [modal]="true" [style]="{ width: '420px', maxWidth: '95vw' }" appendTo="body">
+  <div class="pw">
+    <label for="pw1">New password</label>
+    <p-password inputId="pw1" [(ngModel)]="password" [toggleMask]="true" [feedback]="false" styleClass="w-full" inputStyleClass="w-full" />
+    <label for="pw2">Confirm password</label>
+    <p-password inputId="pw2" [(ngModel)]="confirmPassword" [toggleMask]="true" [feedback]="false" styleClass="w-full" inputStyleClass="w-full" />
+    <small class="muted">At least 8 characters. Tell the client the new password through a secure channel.</small>
+  </div>
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="showPassword = false" />
+    <p-button label="Change password" [loading]="savingPassword" (onClick)="savePassword()" />
+  </ng-template>
+</p-dialog>

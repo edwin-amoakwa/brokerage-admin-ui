@@ -1,0 +1,303 @@
+<div class="dash">
+  <!-- HEADER -->
+  <header class="dash-head">
+    <div>
+      <h1>Accounts Dashboard</h1>
+      <p class="dash-sub">{{ (data?.valueDate || null) | date: 'EEEE d MMMM y' }}</p>
+    </div>
+    <div class="head-actions">
+      @if (canAccounts || canInvestors) {
+        <form class="search" (ngSubmit)="find()">
+          <label for="am-search" class="visually-hidden">Find an account or investor</label>
+          <input id="am-search" name="search" pInputText type="search" [(ngModel)]="search"
+                 [placeholder]="canAccounts ? 'Account code, depository code, name or investor' : 'Investor name, code, email or phone'" />
+          <p-button type="submit" icon="pi pi-search" severity="secondary" [outlined]="true" ariaLabel="Search" />
+        </form>
+      }
+      @if (canInvestors) {
+        <p-button label="Add investor" icon="pi pi-user-plus" severity="secondary" [outlined]="true"
+                  routerLink="/accounts/investors" [queryParams]="{ new: 1 }" />
+      }
+      @if (canAccounts) {
+        <p-button label="Open account" icon="pi pi-plus" routerLink="/accounts/accounts" [queryParams]="{ new: 1 }" />
+      }
+      <p-button icon="pi pi-refresh" [rounded]="true" [text]="true" severity="secondary" [loading]="loading" (onClick)="load()"
+                pTooltip="Refresh" tooltipPosition="bottom" ariaLabel="Refresh" />
+    </div>
+  </header>
+
+  @if (data) {
+    <!-- ONBOARDING PIPELINE -->
+    <div class="pipeline">
+      <a class="stage" routerLink="/accounts/incomplete-registrations" [class.idle]="!pipeline.incomplete?.count">
+        <span class="stage-icon red"><i class="pi pi-user-minus"></i></span>
+        <div class="stage-body">
+          <div class="stage-label"><span class="step-no">1</span>Incomplete registration</div>
+          <div class="stage-count bad">{{ pipeline.incomplete?.count | number }}</div>
+          <div class="stage-foot">
+            @if (pipeline.incomplete?.oldestDays != null) { Oldest started {{ waiting(pipeline.incomplete.oldestDays) }} ago } @else { Nobody waiting }
+          </div>
+        </div>
+        <i class="pi pi-arrow-right stage-go"></i>
+      </a>
+      <a class="stage" routerLink="/accounts/verifications" [class.idle]="!pipeline.pendingVerification?.count">
+        <span class="stage-icon gold"><i class="pi pi-verified"></i></span>
+        <div class="stage-body">
+          <div class="stage-label"><span class="step-no">2</span>Awaiting verification</div>
+          <div class="stage-count warn">{{ pipeline.pendingVerification?.count | number }}</div>
+          <div class="stage-foot">
+            @if (pipeline.pendingVerification?.oldestDays != null) { Oldest waiting {{ waiting(pipeline.pendingVerification.oldestDays) }} } @else { Nobody waiting }
+          </div>
+        </div>
+        <i class="pi pi-arrow-right stage-go"></i>
+      </a>
+      <a class="stage" routerLink="/accounts/account-creation" [class.idle]="!pipeline.awaitingAccount?.count">
+        <span class="stage-icon blue"><i class="pi pi-id-card"></i></span>
+        <div class="stage-body">
+          <div class="stage-label"><span class="step-no">3</span>Awaiting account creation</div>
+          <div class="stage-count warn">{{ pipeline.awaitingAccount?.count | number }}</div>
+          <div class="stage-foot">
+            @if (pipeline.awaitingAccount?.oldestDays != null) { Oldest waiting {{ waiting(pipeline.awaitingAccount.oldestDays) }} } @else { Nobody waiting }
+          </div>
+        </div>
+        <i class="pi pi-arrow-right stage-go"></i>
+      </a>
+      <a class="stage done" routerLink="/accounts/accounts">
+        <span class="stage-icon onbrand"><i class="pi pi-check"></i></span>
+        <div class="stage-body">
+          <div class="stage-label"><span class="step-no">4</span>Accounts opened this month</div>
+          <div class="stage-count">{{ pipeline.openedThisMonth | number }}</div>
+          <div class="stage-foot">{{ pipeline.openedLastMonth | number }} last month</div>
+        </div>
+        <i class="pi pi-arrow-right stage-go"></i>
+      </a>
+    </div>
+
+    <!-- KEY FIGURES -->
+    <div class="kpis">
+      <div class="kpi">
+        <span class="kpi-icon brand"><i class="pi pi-id-card"></i></span>
+        <div>
+          <div class="kpi-label">Trading accounts</div>
+          <div class="kpi-value">{{ figures.accountsTotal | number }}</div>
+          <div class="kpi-foot">{{ figures.accountsMultiHolder | number }} joint and ITF</div>
+        </div>
+      </div>
+      <div class="kpi">
+        <span class="kpi-icon green"><i class="pi pi-users"></i></span>
+        <div>
+          <div class="kpi-label">Investors</div>
+          <div class="kpi-value">{{ figures.investorsTotal | number }}</div>
+          <div class="kpi-foot">{{ figures.investorsVerified | number }} verified</div>
+        </div>
+      </div>
+      <div class="kpi">
+        <span class="kpi-icon gold"><i class="pi pi-arrow-up-right"></i></span>
+        <div>
+          <div class="kpi-label">Pending withdrawals</div>
+          <div class="kpi-value">GHS {{ figures.pendingWithdrawalAmount | number: '1.2-2' }}</div>
+          <div class="kpi-foot">{{ figures.pendingWithdrawalCount | number }} {{ figures.pendingWithdrawalCount === 1 ? 'request' : 'requests' }} waiting</div>
+        </div>
+      </div>
+      <div class="kpi">
+        <span class="kpi-icon blue"><i class="pi pi-sign-in"></i></span>
+        <div>
+          <div class="kpi-label">Portal logins enabled</div>
+          <div class="kpi-value">{{ figures.loginsEnabled | number }}</div>
+          <div class="kpi-foot">{{ figures.loginsDisabled | number }} disabled</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="board">
+      <!-- WORK QUEUE -->
+      <section class="panel span-8">
+        <header class="panel-head">
+          <span class="panel-icon warn"><i class="pi pi-inbox"></i></span>
+          <div><h2>Work queue</h2><p>Longest waiting first · {{ data.queueTotal | number }} {{ data.queueTotal === 1 ? 'item' : 'items' }}</p></div>
+        </header>
+        @if (data.queue?.length) {
+          <div class="table-scroll">
+            <table class="plain">
+              <thead>
+                <tr>
+                  <th scope="col">Investor</th>
+                  <th scope="col">Stage</th>
+                  <th scope="col">Outstanding</th>
+                  <th scope="col" class="num">Waiting</th>
+                  <th scope="col" class="num"><span class="visually-hidden">Action</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (q of data.queue; track q.investorId + q.stage) {
+                  <tr>
+                    <td>
+                      <strong>{{ q.name || 'Unnamed investor' }}</strong>
+                      <small>{{ q.investorCode || 'No code' }}{{ q.investorType ? ' · ' + (q.investorType === 'CORPORATE' ? 'Corporate' : 'Individual') : '' }}</small>
+                    </td>
+                    <td><span class="pill" [class]="stageTone(q)">{{ q.stageName }}</span></td>
+                    <td class="note">{{ q.note }}</td>
+                    <td class="num nowrap">{{ waiting(q.waitingDays) }}</td>
+                    <td class="num">
+                      @if (stageAction(q); as a) {
+                        <a class="row-action" [routerLink]="a.route" [queryParams]="a.query">{{ a.label }}</a>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="empty"><i class="pi pi-check-circle"></i>No investor is waiting at any onboarding stage.</div>
+        }
+      </section>
+
+      <!-- ACCOUNT BOOK -->
+      <section class="panel span-4">
+        <header class="panel-head">
+          <span class="panel-icon brand"><i class="pi pi-book"></i></span>
+          <div><h2>Account book</h2><p>{{ figures.accountsTotal | number }} accounts</p></div>
+        </header>
+        <h3 class="sub">By account type</h3>
+        @for (b of data.book?.byType; track b.name) {
+          <div class="hbar">
+            <div class="hbar-label"><span>{{ b.key === 'ITF' ? 'In trust for (ITF)' : b.name }}</span><b>{{ b.value | number }}</b></div>
+            <span class="bar"><span [style.width.%]="b.percent"></span></span>
+          </div>
+        } @empty { <p class="muted">No accounts yet.</p> }
+        <h3 class="sub">By classification</h3>
+        @for (b of data.book?.byClassification; track b.name) {
+          <div class="hbar">
+            <div class="hbar-label"><span>{{ b.name }}</span><b>{{ b.value | number }}</b></div>
+            <span class="bar"><span class="gold" [style.width.%]="b.percent"></span></span>
+          </div>
+        } @empty { <p class="muted">No accounts yet.</p> }
+      </section>
+
+      <!-- OPENED PER MONTH -->
+      <section class="panel span-8">
+        <header class="panel-head">
+          <span class="panel-icon green"><i class="pi pi-chart-bar"></i></span>
+          <div><h2>Accounts opened per month</h2><p>Last 12 months · {{ openedTotal | number }} opened</p></div>
+        </header>
+        <div class="table-scroll">
+          <div class="months" role="img" [attr.aria-label]="chartLabel">
+            @for (m of data.openedByMonth; track m.month) {
+              <div class="month" [pTooltip]="m.label + ' ' + m.year + ': ' + m.count" tooltipPosition="top">
+                <b>{{ m.count }}</b>
+                <span class="col" [class.current]="m.current" [style.height.px]="barHeight(m.count)"></span>
+                <small>{{ m.label }}</small>
+              </div>
+            }
+          </div>
+        </div>
+        <p class="foot muted">By opening date. The current month is month to date.</p>
+      </section>
+
+      <!-- RECORD HEALTH -->
+      <section class="panel span-4">
+        <header class="panel-head">
+          <span class="panel-icon red"><i class="pi pi-heart"></i></span>
+          <div><h2>Record health</h2><p>Select a line to see the records</p></div>
+        </header>
+        @for (c of data.health; track c.key) {
+          <button type="button" class="check-row" (click)="openCheck(c)" [class.zero]="!c.count">
+            <span>{{ c.label }}</span>
+            <span class="count" [class]="c.count ? c.tone : 'none'">{{ c.count | number }}</span>
+          </button>
+        }
+      </section>
+
+      <!-- KYC -->
+      <section class="panel span-4">
+        <header class="panel-head">
+          <span class="panel-icon gold"><i class="pi pi-shield"></i></span>
+          <div><h2>KYC and compliance</h2><p>Select a line to see the investors</p></div>
+        </header>
+        @for (c of data.kyc; track c.key) {
+          <button type="button" class="check-row" (click)="openCheck(c)" [class.zero]="!c.count">
+            <span>{{ c.label }}</span>
+            <span class="count" [class]="c.count ? c.tone : 'none'">{{ c.count | number }}</span>
+          </button>
+        }
+      </section>
+
+      <!-- PENDING WITHDRAWALS (Cash Transactions users only) -->
+      @if (data.withdrawals) {
+        <section class="panel span-4">
+          <header class="panel-head">
+            <span class="panel-icon warn"><i class="pi pi-arrow-up-right"></i></span>
+            <div>
+              <h2>Pending withdrawals</h2>
+              <p>Oldest first{{ figures.pendingWithdrawalCount > data.withdrawals.rows.length ? ' · showing ' + data.withdrawals.rows.length + ' of ' + figures.pendingWithdrawalCount : '' }}</p>
+            </div>
+          </header>
+          @for (w of data.withdrawals.rows; track w.id) {
+            <div class="w-row">
+              <div class="w-main">
+                <a [routerLink]="'/cash/transactions'" [queryParams]="{ accountId: w.accountId, accountCode: w.accountCode }">{{ w.accountName || 'Unknown account' }}</a>
+                <small>{{ w.accountCode }} · {{ waiting(w.waitingDays) }}</small>
+              </div>
+              <div class="w-side">
+                <b>GHS {{ w.amount | number: '1.2-2' }}</b>
+                <p-button label="Mark as paid" size="small" [text]="true" [loading]="payingId === w.id" (onClick)="markPaid(w)" />
+              </div>
+            </div>
+          } @empty {
+            <div class="empty"><i class="pi pi-check-circle"></i>No withdrawal is waiting.</div>
+          }
+        </section>
+      }
+
+      <!-- RECENT ACTIVITY -->
+      <section class="panel span-4">
+        <header class="panel-head">
+          <span class="panel-icon grey"><i class="pi pi-history"></i></span>
+          <div><h2>Recent account activity</h2><p>Accounts, investors, wallets and cash</p></div>
+        </header>
+        @for (a of data.activity; track $index) {
+          <div class="event">
+            <span class="event-icon"><i class="pi" [class]="activityIcon(a.activityType)"></i></span>
+            <div class="event-main">
+              <strong>{{ a.description || 'Activity' }}</strong>
+              <small>{{ a.at | date: 'd MMM, HH:mm' }}{{ a.accountCode ? ' · ' + a.accountCode : '' }}{{ a.investorName ? ' · ' + a.investorName : '' }}</small>
+            </div>
+          </div>
+        } @empty {
+          <p class="muted">No activity recorded yet.</p>
+        }
+      </section>
+    </div>
+  } @else if (loading) {
+    <p class="muted">Loading…</p>
+  }
+</div>
+
+<!-- DRILL-DOWN -->
+<p-dialog [(visible)]="drillVisible" [modal]="true" [header]="drill?.label || ''" [style]="{ width: '720px', maxWidth: '95vw' }" [dismissableMask]="true">
+  @if (drill) {
+    <p class="muted drill-sub">
+      {{ drill.total | number }} {{ drill.kind === 'account' ? 'account(s)' : 'investor(s)' }}
+      @if (drill.limit && drill.total > drill.limit) { · showing the first {{ drill.limit }} }
+    </p>
+    <p-table [value]="drill.rows || []" [loading]="drillLoading" size="small" [scrollable]="true" scrollHeight="420px">
+      <ng-template #header>
+        <tr><th>Code</th><th>Name</th><th>Detail</th>@if (recordRoute()) { <th></th> }</tr>
+      </ng-template>
+      <ng-template #body let-r>
+        <tr>
+          <td class="nowrap">{{ r.code || '-' }}</td>
+          <td>{{ r.name || '-' }}</td>
+          <td class="muted">{{ r.detail }}</td>
+          @if (recordRoute()) {
+            <td class="num"><p-button label="Open" size="small" [text]="true" (onClick)="openRecord(r)" /></td>
+          }
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr><td colspan="4" class="muted">{{ drillLoading ? 'Loading…' : 'Nothing to show.' }}</td></tr>
+      </ng-template>
+    </p-table>
+  }
+</p-dialog>

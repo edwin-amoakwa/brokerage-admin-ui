@@ -1,0 +1,56 @@
+<app-page-header title="Fixed Income Transaction History" subtitle="Fixed-income transactions by value date">
+  <p-button label="Print" icon="pi pi-print" severity="secondary" [outlined]="true" [loading]="printing" (onClick)="print()" />
+</app-page-header>
+
+<div class="card">
+  <div class="filter-bar">
+    <div class="field" style="min-width: 300px">
+      <label class="field-label">Account (optional)</label>
+      <app-entity-picker kind="account" [value]="account" (selected)="account = $event; reload()" buttonLabel="Find" placeholder="All accounts" />
+    </div>
+    <div class="field">
+      <label class="field-label">From</label>
+      <input type="date" pInputText [(ngModel)]="fromDate" />
+    </div>
+    <div class="field">
+      <label class="field-label">To</label>
+      <input type="date" pInputText [(ngModel)]="toDate" />
+    </div>
+    <div class="field">
+      <label class="field-label">Status</label>
+      <p-select [(ngModel)]="authorised" [options]="authOptions" optionLabel="itemName" optionValue="id" appendTo="body" />
+    </div>
+    <p-button label="Search" icon="pi pi-search" (onClick)="reload()" />
+    <p-button label="Clear" severity="secondary" [text]="true" (onClick)="clear()" />
+    <span class="muted">{{ total }} transaction(s)</span>
+  </div>
+
+  <p-table [value]="rows" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="20" [rowsPerPageOptions]="[20, 50, 100]"
+           [totalRecords]="total" [loading]="loading" size="small" [first]="first" dataKey="id">
+    <ng-template #header>
+      <tr>
+        <th>Account</th><th>Type</th><th>Instrument</th><th>Trans. date</th><th class="text-right">Rate %</th>
+        <th class="text-right">Face value</th><th class="text-right">Maturity value</th><th>Maturity date</th>
+        <th class="text-right">Days run</th><th class="text-right">Accrued int.</th><th>Status</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr>
+        <td>{{ row.accountName }}</td>
+        <td>{{ row.assetSubClassName }}</td>
+        <td>{{ row.instrument }}@if (row.issuer) {<div class="muted small">{{ row.issuer }}</div>}</td>
+        <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+        <td class="text-right">{{ row.interestRate | number: '1.2-4' }}</td>
+        <td class="text-right">{{ row.faceValue | number: '1.2-2' }}</td>
+        <td class="text-right">{{ row.maturityValue | number: '1.2-2' }}</td>
+        <td>{{ row.maturityDate | date: 'dd/MM/yyyy' }}</td>
+        <td class="text-right">{{ row.daysRun }}</td>
+        <td class="text-right">{{ row.accruedInterest | number: '1.2-2' }}</td>
+        <td><p-tag [value]="row.authorised ? 'Authorised' : 'Unauthorised'" [severity]="row.authorised ? 'success' : 'warn'" /></td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage><tr><td colspan="11">No fixed-income transactions found.</td></tr></ng-template>
+  </p-table>
+</div>
+
+<app-report-viewer [reportData]="reportData" />

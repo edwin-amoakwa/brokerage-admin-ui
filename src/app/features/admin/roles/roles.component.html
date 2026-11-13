@@ -1,0 +1,69 @@
+<app-page-header title="Roles" subtitle="Which pages each group of staff can open">
+  <p-button label="Add role" icon="pi pi-plus" (onClick)="create()" />
+</app-page-header>
+
+<div class="card">
+  <p-table [value]="rows" [loading]="loading" size="small">
+    <ng-template #header>
+      <tr><th>Role</th><th>Description</th><th>Access</th><th>Users</th><th class="actions-col"></th></tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr>
+        <td>{{ row.roleName }}</td>
+        <td>{{ row.description }}</td>
+        <td>
+          @if (row.superUser) { <p-tag value="All pages" severity="success" /> } @else { {{ row.permissions?.length || 0 }} page(s) }
+        </td>
+        <td>{{ row.userCount }}</td>
+        <td class="actions-col">
+          <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="edit(row)" ariaLabel="Edit" />
+          <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="remove(row)" ariaLabel="Delete" />
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage><tr><td colspan="5">No roles yet. Users without a role can open every page.</td></tr></ng-template>
+  </p-table>
+</div>
+
+<p-dialog [header]="record?.id ? 'Edit role' : 'New role'" [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '820px', maxWidth: '96vw' }" appendTo="body">
+  @if (record) {
+    <div class="row g-3">
+      <div class="col-md-5">
+        <label class="field-label">Role name<span class="req">*</span></label>
+        <input pInputText [(ngModel)]="record.roleName" class="w-full" />
+      </div>
+      <div class="col-md-7">
+        <label class="field-label">Description</label>
+        <input pInputText [(ngModel)]="record.description" class="w-full" />
+      </div>
+      <div class="col-md-12">
+        <div class="check-field">
+          <p-checkbox [(ngModel)]="record.superUser" [binary]="true" inputId="super" />
+          <label for="super">Can open every page</label>
+        </div>
+      </div>
+    </div>
+    @if (!record.superUser) {
+      @for (group of groups; track group.label) {
+        <div class="section-title">
+          {{ group.label }}
+          <a class="small clickable" (click)="toggleGroup(group)">({{ allChecked(group) ? 'clear' : 'all' }})</a>
+        </div>
+        <div class="row g-2">
+          @for (page of group.pages; track page.key) {
+            <div class="col-md-4">
+              <div class="check-field" style="padding-top: 0">
+                <p-checkbox [(ngModel)]="selected[page.key]" [binary]="true" [inputId]="page.key" />
+                <label [for]="page.key">{{ page.label }}</label>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    }
+  }
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="dialogVisible = false" />
+    <p-button label="Save" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+  </ng-template>
+</p-dialog>

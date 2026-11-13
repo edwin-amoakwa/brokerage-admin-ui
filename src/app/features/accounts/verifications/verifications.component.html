@@ -1,0 +1,45 @@
+@if (!investor) {
+  <app-page-header title="Investor Verifications" subtitle="Completed registrations awaiting KYC review before account creation" />
+  <div class="card">
+    <app-investor-table #table status="PENDING" [showEdit]="true" editLabel="Process" editIcon="pi pi-check-square"
+                        emptyMessage="No investor is awaiting verification." (edit)="open($event)" />
+  </div>
+} @else {
+  <app-page-header [title]="investor.displayName" [subtitle]="'Registration ' + (investor.investorCode || '')">
+    <p-button label="Close" severity="secondary" [outlined]="true" icon="pi pi-arrow-left" (onClick)="close()" />
+  </app-page-header>
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card">
+        <app-investor-kyc [investor]="investor" [showHeader]="true" />
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-title">Depository Account No</div>
+        <input pInputText [(ngModel)]="depAccountNo" class="w-full" [disabled]="investor.bioDataVerified" />
+        <div class="form-actions">
+          <p-button label="Save" severity="secondary" [outlined]="true" [loading]="savingDep" [disabled]="investor.bioDataVerified" (onClick)="saveDepository()" />
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Verification</div>
+        @if (investor.bioDataVerified) {
+          <p class="muted">Verified{{ investor.verifiedBy ? ' by ' + investor.verifiedBy : '' }}. The investor has been sent the
+            verification-completed message and is now on the
+            <a routerLink="/accounts/account-creation">Account Creation</a> page.</p>
+        } @else {
+          <p class="muted">Verifying marks the investor as verified (stamped with your name and today's date), sends them the
+            verification-completed message by email, SMS and WhatsApp, and moves them to Account Creation.</p>
+        }
+        <div class="form-actions">
+          @if (investor.bioDataVerified) {
+            <span class="tag-ok"><i class="pi pi-check-circle"></i> Verified</span>
+          } @else {
+            <p-button label="Verify for Account Creation" icon="pi pi-verified" [loading]="verifying" (onClick)="verify()" />
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,155 @@
+@if (!detail) {
+  <app-page-header title="Trade Records" subtitle="Trades booked from executions">
+    <p-button label="Trade and Settlement Report (pdf)" icon="pi pi-print" severity="secondary" [outlined]="true" (onClick)="print()" />
+    <p-button label="Trade and Settlement Report (Excel)" icon="pi pi-file-excel" severity="secondary" [outlined]="true" (onClick)="exportExcel()" />
+  </app-page-header>
+
+  <app-stat-tiles [tiles]="tiles" />
+
+  <div class="card">
+    <div class="filter-bar">
+      <div class="field">
+        <label class="field-label">Side</label>
+        <p-select [(ngModel)]="filter.buySell" [options]="sides" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="All" appendTo="body" />
+      </div>
+      <div class="field">
+        <label class="field-label">Stock</label>
+        <p-select [(ngModel)]="filter.stockId" [options]="stocks" optionLabel="itemName" optionValue="id" [filter]="true" [showClear]="true" placeholder="All" appendTo="body" />
+      </div>
+      <div class="field">
+        <label class="field-label">From</label>
+        <input type="date" pInputText [(ngModel)]="filter.fromDate" />
+      </div>
+      <div class="field">
+        <label class="field-label">To</label>
+        <input type="date" pInputText [(ngModel)]="filter.toDate" />
+      </div>
+      <div class="field">
+        <label class="field-label">Search</label>
+        <input pInputText [(ngModel)]="filter.keyword" placeholder="Order no, account or stock" (keyup.enter)="reload()" />
+      </div>
+      <p-button label="Search" icon="pi pi-search" (onClick)="reload()" />
+    </div>
+
+    <p-table [value]="rows" dataKey="id" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="25" [rowsPerPageOptions]="[10, 25, 50, 100]"
+             [first]="first" [totalRecords]="total" [loading]="loading" size="small">
+      <ng-template #header>
+        <tr><th style="width: 2.5rem"></th><th>Date</th><th>Order No</th><th>Side</th><th>Account</th><th>Stock</th>
+          <th class="text-right">Quantity</th><th class="text-right">Trade Price</th><th class="text-right">Consideration</th>
+          <th class="text-right">Charges</th><th class="text-right">Net</th><th>Status</th><th class="actions-col"></th></tr>
+      </ng-template>
+      <ng-template #body let-t let-expanded="expanded">
+        <tr>
+          <td><p-button [pRowToggler]="t" [text]="true" size="small" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" /></td>
+          <td>{{ t.valueDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ t.orderNo }}</td>
+          <td><p-tag [value]="t.buySellName" [severity]="side(t.buySell)" /></td>
+          <td>{{ t.accountName }}</td>
+          <td>{{ t.stockSymbol }}</td>
+          <td class="text-right">{{ t.quantity | number: '1.0-0' }}</td>
+          <td class="text-right">{{ t.tradePrice | number: '1.2-4' }}</td>
+          <td class="text-right">{{ t.consideration | number: '1.2-2' }}</td>
+          <td class="text-right">{{ t.totalCharges | number: '1.2-2' }}</td>
+          <td class="text-right">{{ t.netConsideration | number: '1.2-2' }}</td>
+          <td><p-tag [value]="t.authorised ? 'Authorised' : 'Awaiting authorisation'" [severity]="t.authorised ? 'success' : 'warn'" /></td>
+          <td class="actions-col">
+            <p-button label="View" [text]="true" size="small" (onClick)="view(t)" />
+            <p-button label="Note" [text]="true" size="small" (onClick)="contractNote(t)" />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #expandedrow let-t>
+        <tr>
+          <td colspan="13">
+            <div class="detail-grid">
+              <div><div class="label">Order type</div><div class="value">{{ t.orderTypeName || '-' }}</div></div>
+              <div><div class="label">Brokerage commission</div><div class="value">{{ t.brokerageCommission | number: '1.2-2' }}</div></div>
+              <div><div class="label">Other charges</div><div class="value">{{ t.otherCharges | number: '1.2-2' }}</div></div>
+              <div><div class="label">In-house commission</div><div class="value">{{ t.inhouseComms | number: '1.2-2' }}</div></div>
+              <div><div class="label">Third-party commission</div><div class="value">{{ t.thirdpartyComms | number: '1.2-2' }}</div></div>
+              <div><div class="label">Authorised</div><div class="value">{{ t.authorisedBy || '-' }} {{ t.authDate | date: 'dd/MM/yyyy' }}</div></div>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #footer>
+        <tr><td colspan="6">Totals</td><td class="text-right">{{ summary.totalQuantity | number: '1.0-0' }}</td><td></td>
+          <td class="text-right">{{ summary.totalConsideration | number: '1.2-2' }}</td>
+          <td class="text-right">{{ summary.totalCharges | number: '1.2-2' }}</td>
+          <td class="text-right">{{ summary.totalNetConsideration | number: '1.2-2' }}</td><td colspan="2"></td></tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="13">No trades found.</td></tr></ng-template>
+    </p-table>
+  </div>
+} @else {
+  <app-page-header [title]="'Trade ' + (trade.orderNo || '')" [subtitle]="trade.accountName + ' · ' + (trade.valueDate | date: 'dd/MM/yyyy')">
+    <p-tag [value]="trade.authorised ? 'Authorised' : 'Awaiting authorisation'" [severity]="trade.authorised ? 'success' : 'warn'" />
+    <p-button label="Contract Note" icon="pi pi-file-pdf" (onClick)="contractNote(trade)" />
+    <p-button label="Back to Trade Records" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" (onClick)="detail = null" />
+  </app-page-header>
+
+  <app-stat-tiles [tiles]="detailTiles" />
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-title">Fees</div>
+        <p-table [value]="detail.fees" size="small">
+          <ng-template #header><tr><th>Fee</th><th>Type</th><th>Basis</th><th class="text-right">Amount</th></tr></ng-template>
+          <ng-template #body let-f>
+            <tr>
+              <td>{{ f.feeName }}</td>
+              <td>{{ f.brokerCommission ? 'Broker commission' : 'Other charge' }}</td>
+              <td>{{ f.basis }}</td>
+              <td class="text-right">{{ f.feeAmount | number: '1.2-2' }}</td>
+            </tr>
+          </ng-template>
+          <ng-template #footer><tr><td colspan="3">Total</td><td class="text-right">{{ detail.feesTotal | number: '1.2-2' }}</td></tr></ng-template>
+          <ng-template #emptymessage><tr><td colspan="4">No fee lines on this trade.</td></tr></ng-template>
+        </p-table>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-title">Settlement Summary</div>
+        <div class="detail-grid">
+          <div><div class="label">Consideration</div><div class="value">{{ trade.consideration | number: '1.2-2' }}</div></div>
+          <div><div class="label">Brokerage commission</div><div class="value">{{ trade.brokerageCommission | number: '1.2-2' }}</div></div>
+          <div><div class="label">In-house / third-party</div><div class="value">{{ trade.inhouseComms | number: '1.2-2' }} / {{ trade.thirdpartyComms | number: '1.2-2' }}</div></div>
+          <div><div class="label">Other charges</div><div class="value">{{ trade.otherCharges | number: '1.2-2' }}</div></div>
+          <div><div class="label">{{ netLabel() }}</div><div class="value">{{ trade.netConsideration | number: '1.2-2' }}</div></div>
+          <div><div class="label">Settlement date</div><div class="value">{{ trade.settlementDate | date: 'dd/MM/yyyy' }}</div></div>
+          <div><div class="label">Authorised by</div><div class="value">{{ trade.authorisedBy || '-' }} {{ trade.authDate | date: 'dd/MM/yyyy' }}</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Executions</div>
+    <p-table [value]="detail.executions" size="small">
+      <ng-template #header>
+        <tr><th>Date</th><th>Execution ID</th><th class="text-right">Quantity</th><th class="text-right">Price</th>
+          <th class="text-right">Cost</th><th>Status</th><th>Message</th></tr>
+      </ng-template>
+      <ng-template #body let-e>
+        <tr>
+          <td>{{ e.valueDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ e.executionId }}</td>
+          <td class="text-right">{{ e.quantity | number: '1.0-0' }}</td>
+          <td class="text-right">{{ e.executionPrice | number: '1.2-4' }}</td>
+          <td class="text-right">{{ e.executionCost | number: '1.2-2' }}</td>
+          <td>{{ e.transactionStatusName }}</td>
+          <td>{{ e.message }}</td>
+        </tr>
+      </ng-template>
+      <ng-template #footer>
+        <tr><td colspan="2">Total</td><td class="text-right">{{ detail.executedQuantity | number: '1.0-0' }}</td><td></td>
+          <td class="text-right">{{ detail.executedCost | number: '1.2-2' }}</td><td colspan="2"></td></tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="7">No executions found for this trade.</td></tr></ng-template>
+    </p-table>
+  </div>
+}
+
+<app-report-viewer [reportData]="reportData" />

@@ -1,0 +1,204 @@
+<app-page-header title="Notifications" subtitle="Messages the platform sends to clients, the channels they use, and what was delivered">
+  <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="loadTypes(); refreshDeliveries()" />
+</app-page-header>
+
+<p-tabs [(value)]="tab">
+  <p-tablist>
+    <p-tab value="types"><i class="pi pi-bell"></i> Notification types</p-tab>
+    <p-tab value="log"><i class="pi pi-list"></i> Message log</p-tab>
+  </p-tablist>
+  <p-tabpanels>
+    <!-- TYPES -->
+    <p-tabpanel value="types">
+      <div class="card">
+        <p-table [value]="types" [loading]="loadingTypes" size="small" dataKey="code">
+          <ng-template #header>
+            <tr>
+              <th>Notification</th>
+              <th class="text-center">On</th>
+              <th class="text-center"><i class="pi pi-envelope"></i> Email</th>
+              <th class="text-center"><i class="pi pi-mobile"></i> SMS</th>
+              <th class="text-center"><i class="pi pi-whatsapp"></i> WhatsApp</th>
+              <th class="text-right">Sent this month</th>
+              <th class="actions-col"></th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-t>
+            <tr>
+              <td>
+                <div class="type-name">
+                  {{ t.label }}
+                  @if (t.customised) { <p-tag value="Customised" severity="info" [rounded]="true" /> }
+                </div>
+                <div class="small muted">{{ t.module }} · {{ t.description }}</div>
+              </td>
+              <td class="text-center"><p-toggleswitch [(ngModel)]="t.enabled" (onChange)="toggle(t, 'enabled', $event.checked)" /></td>
+              <td class="text-center"><p-toggleswitch [(ngModel)]="t.email" [disabled]="!t.enabled" (onChange)="toggle(t, 'email', $event.checked)" /></td>
+              <td class="text-center"><p-toggleswitch [(ngModel)]="t.sms" [disabled]="!t.enabled" (onChange)="toggle(t, 'sms', $event.checked)" /></td>
+              <td class="text-center">
+                <p-toggleswitch [(ngModel)]="t.whatsapp" [disabled]="!t.enabled" (onChange)="toggle(t, 'whatsapp', $event.checked)" />
+                <div class="tiny muted">logged only</div>
+              </td>
+              <td class="text-right">{{ t.sentThisMonth | number }}</td>
+              <td class="actions-col">
+                <p-button icon="pi pi-pencil" label="Wording" size="small" [text]="true" (onClick)="edit(t)" />
+                <p-button icon="pi pi-send" size="small" [text]="true" (onClick)="sendTest(t)" pTooltip="Send me a test" />
+                @if (t.customised) {
+                  <p-button icon="pi pi-undo" size="small" [text]="true" severity="secondary" (onClick)="reset(t)" pTooltip="Reset to default" />
+                }
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template #emptymessage><tr><td colspan="7">No notification types.</td></tr></ng-template>
+        </p-table>
+        <p class="small muted note">
+          WhatsApp has no provider connected yet: WhatsApp messages are rendered and recorded in the message log (and the server log)
+          but not sent. A test goes to your own user account's email and phone.
+        </p>
+      </div>
+    </p-tabpanel>
+
+    <!-- DELIVERY LOG -->
+    <p-tabpanel value="log">
+      <app-stat-tiles [tiles]="tiles" />
+      <div class="card">
+        <div class="filter-bar">
+          <div class="field"><label class="field-label">From</label><input type="date" pInputText [(ngModel)]="filters.fromDate" /></div>
+          <div class="field"><label class="field-label">To</label><input type="date" pInputText [(ngModel)]="filters.toDate" /></div>
+          <div class="field">
+            <label class="field-label">Channel</label>
+            <p-select [(ngModel)]="filters.channel" [options]="channels" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="All" appendTo="body" />
+          </div>
+          <div class="field">
+            <label class="field-label">Status</label>
+            <p-select [(ngModel)]="filters.status" [options]="statuses" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="All" appendTo="body" />
+          </div>
+          <div class="field grow">
+            <label class="field-label">Search</label>
+            <input pInputText [(ngModel)]="filters.keyword" placeholder="Name, address, reference or message" (keyup.enter)="refreshDeliveries()" />
+          </div>
+          <p-button label="Search" icon="pi pi-search" (onClick)="refreshDeliveries()" />
+        </div>
+
+        <p-table [value]="deliveries" [lazy]="true" (onLazyLoad)="loadDeliveries($event)" [paginator]="true" [rows]="20"
+                 [totalRecords]="total" [loading]="loadingDeliveries" [first]="first" size="small" [rowsPerPageOptions]="[20, 50, 100]">
+          <ng-template #header>
+            <tr>
+              <th>When</th><th>Notification</th><th>Recipient</th>
+              @for (c of channelKeys; track c.key) { <th class="text-center"><i [class]="c.icon"></i> {{ c.label }}</th> }
+              <th class="actions-col"></th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-d>
+            <tr>
+              <td class="nowrap">{{ d.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ d.typeLabel }}@if (d.recordNo) { <div class="small muted">{{ d.recordNo }}</div> }</td>
+              <td>{{ d.recipientName }}<div class="small muted">{{ d.recipientEmail || d.recipientPhone || 'no address' }}</div></td>
+              @for (c of channelKeys; track c.key) {
+                <td class="text-center">
+                  <span class="ch-status" [class]="'ch-status st-' + (d[c.key + 'Status'] || 'NONE')" [pTooltip]="channelTip(d, c.key)" tooltipPosition="top">
+                    <i [class]="statusIcon(d[c.key + 'Status'])"></i>
+                    @if (d[c.key + 'Status']) { <span>{{ d[c.key + 'StatusName'] }}</span> }
+                  </span>
+                </td>
+              }
+              <td class="actions-col">
+                <p-button icon="pi pi-eye" size="small" [text]="true" (onClick)="viewing = d" pTooltip="View message" />
+                @if (d.canRetry) {
+                  <p-button icon="pi pi-replay" size="small" [text]="true" (onClick)="retry(d)" pTooltip="Retry failed channels" />
+                }
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template #emptymessage><tr><td colspan="7">No messages match.</td></tr></ng-template>
+        </p-table>
+      </div>
+    </p-tabpanel>
+  </p-tabpanels>
+</p-tabs>
+
+<!-- WORDING EDITOR -->
+<p-dialog [header]="'Wording: ' + (editing?.label || '')" [visible]="!!editing" (visibleChange)="!$event && (editing = null)" [modal]="true"
+          [style]="{ width: '1040px', maxWidth: '96vw' }" appendTo="body" [maximizable]="true">
+  @if (editing) {
+    <div class="tokens">
+      <span class="small muted">Insert into the field you are editing:</span>
+      @for (tk of editing.tokens; track tk) {
+        <button type="button" class="token" (mousedown)="$event.preventDefault()" (click)="insertToken(tk, focused)">{{ '{{' + tk + '}}' }}</button>
+      }
+    </div>
+    <div class="row g-4">
+      <div class="col-lg-7">
+        <div class="field-head"><label class="field-label"><i class="pi pi-envelope"></i> Email subject</label>
+          <a class="small clickable" (click)="restoreDefault('title')">Default</a></div>
+        <input pInputText #fTitle [(ngModel)]="wording.title" class="w-full" (focus)="activeField = 'title'; focused = fTitle" />
+
+        <div class="field-head"><label class="field-label"><i class="pi pi-envelope"></i> Email body</label>
+          <a class="small clickable" (click)="restoreDefault('body')">Default</a></div>
+        <textarea pTextarea #fBody [(ngModel)]="wording.body" rows="10" class="w-full" (focus)="activeField = 'body'; focused = fBody"></textarea>
+
+        <div class="field-head"><label class="field-label"><i class="pi pi-mobile"></i> SMS text</label>
+          <span class="small muted">{{ preview(wording.sms).length }} chars · {{ smsSegments(wording.sms) }} SMS
+            <a class="clickable" (click)="restoreDefault('sms')">Default</a></span></div>
+        <textarea pTextarea #fSms [(ngModel)]="wording.sms" rows="3" class="w-full" (focus)="activeField = 'sms'; focused = fSms"></textarea>
+
+        <div class="field-head"><label class="field-label"><i class="pi pi-whatsapp"></i> WhatsApp text</label>
+          <a class="small clickable" (click)="restoreDefault('whatsapp')">Default</a></div>
+        <textarea pTextarea #fWa [(ngModel)]="wording.whatsapp" rows="5" class="w-full" (focus)="activeField = 'whatsapp'; focused = fWa"></textarea>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="section-title">Preview</div>
+        <div class="preview email">
+          <div class="pv-head">{{ preview(wording.title) }}</div>
+          <div class="pv-body">{{ preview(wording.body) }}</div>
+        </div>
+        <div class="preview sms">
+          <div class="pv-label"><i class="pi pi-mobile"></i> SMS</div>
+          <div class="bubble">{{ preview(wording.sms) }}</div>
+        </div>
+        <div class="preview wa">
+          <div class="pv-label"><i class="pi pi-whatsapp"></i> WhatsApp</div>
+          <div class="bubble green">{{ preview(wording.whatsapp) }}</div>
+        </div>
+      </div>
+    </div>
+  }
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="editing = null" />
+    <p-button label="Save wording" icon="pi pi-check" [loading]="saving" (onClick)="saveWording()" />
+  </ng-template>
+</p-dialog>
+
+<!-- MESSAGE VIEWER -->
+<p-dialog [header]="viewing?.typeLabel || 'Message'" [visible]="!!viewing" (visibleChange)="!$event && (viewing = null)" [modal]="true"
+          [style]="{ width: '720px', maxWidth: '96vw' }" appendTo="body">
+  @if (viewing) {
+    <div class="detail-grid">
+      <div><div class="label">To</div><div class="value">{{ viewing.recipientName }}</div></div>
+      <div><div class="label">Queued</div><div class="value">{{ viewing.createdAt | date: 'dd/MM/yyyy HH:mm' }}</div></div>
+      <div><div class="label">Reference</div><div class="value">{{ viewing.recordNo || '-' }}</div></div>
+    </div>
+    @for (c of channelKeys; track c.key) {
+      @if (viewing[c.key + 'Status']) {
+        <div class="channel-block">
+          <div class="channel-head">
+            <span class="channel-name"><i [class]="c.icon"></i> {{ c.label }}</span>
+            <span class="small muted">{{ channelAddress(viewing, c.key) || 'no address' }}</span>
+            <p-tag [value]="viewing[c.key + 'StatusName']" [severity]="statusSeverity(viewing[c.key + 'Status'])" [rounded]="true" />
+            <span class="grow"></span>
+            @if (viewing[c.key + 'SentAt']) { <span class="small muted">Sent {{ viewing[c.key + 'SentAt'] | date: 'dd/MM/yyyy HH:mm' }}</span> }
+            @if (viewing[c.key + 'CanRetry']) {
+              <p-button label="Retry" icon="pi pi-replay" size="small" [text]="true" (onClick)="retry(viewing, c.id)" />
+            }
+          </div>
+          @if (c.key === 'email' && viewing.emailSubject) { <div class="subject">{{ viewing.emailSubject }}</div> }
+          <div class="message-text">{{ viewing[c.key + 'Text'] }}</div>
+          @if (viewing[c.key + 'Note']) {
+            <p class="small muted">{{ viewing[c.key + 'Note'] }}@if (viewing[c.key + 'Attempts'] > 1) { · {{ viewing[c.key + 'Attempts'] }} attempts }</p>
+          }
+        </div>
+      }
+    }
+  }
+</p-dialog>

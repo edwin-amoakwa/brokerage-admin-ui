@@ -1,0 +1,450 @@
+<a class="back" [routerLink]="id ? ['/accounts/investors', id] : ['/accounts/investors']"><i class="pi pi-angle-left"></i> {{ id ? 'Profile' : 'Investors' }}</a>
+
+@if (record) {
+  <header class="page-head">
+    <div>
+      <h1>{{ title }}</h1>
+      <p class="muted">
+        @if (submitted) {
+          Changes are saved straight to the investor's record.
+        } @else {
+          Fill in what you have. Fields marked <span class="req">*</span> are needed before the investor can be sent for verification.
+        }
+      </p>
+    </div>
+    <ng-container *ngTemplateOutlet="actions"></ng-container>
+  </header>
+
+  <div class="layout">
+    <div class="main">
+
+      <!-- TYPE -->
+      <section class="panel" id="sec-type">
+        <h2>Investor type <span class="req">*</span></h2>
+        <div class="type-choice" role="radiogroup" aria-label="Investor type">
+          <label [class.on]="record.investorType === 'INDIVIDUAL'">
+            <p-radiobutton name="investorType" value="INDIVIDUAL" [(ngModel)]="record.investorType" [disabled]="!!record.bioDataVerified" />
+            <span><strong>Individual</strong><small>A person</small></span>
+          </label>
+          <label [class.on]="record.investorType === 'CORPORATE'">
+            <p-radiobutton name="investorType" value="CORPORATE" [(ngModel)]="record.investorType" [disabled]="!!record.bioDataVerified" />
+            <span><strong>Corporate</strong><small>A company or institution</small></span>
+          </label>
+        </div>
+      </section>
+
+      <!-- PERSONAL -->
+      <section class="panel" id="sec-personal">
+        <h2>{{ isCorporate ? 'Company information' : 'Personal information' }}</h2>
+        <div class="row g-3">
+          @if (isCorporate) {
+            <div class="col-md-8"><label class="lbl" for="f-corp">Company name <span class="req">*</span></label>
+              <input id="f-corp" pInputText [(ngModel)]="record.corporateName" class="w-full" (blur)="checkDuplicates()" /></div>
+            <div class="col-md-4"><label class="lbl" for="f-inc">Incorporation date</label>
+              <input id="f-inc" type="date" pInputText [(ngModel)]="record.corporateIncorporationDate" class="w-full" /></div>
+            <div class="col-md-6"><label class="lbl" for="f-nat">Country of incorporation <span class="req">*</span></label>
+              <p-select inputId="f-nat" [(ngModel)]="record.nationalityId" [options]="countries" optionLabel="itemName" optionValue="id" [filter]="true" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+            <div class="col-md-6"><label class="lbl" for="f-res">Country of operation <span class="req">*</span></label>
+              <p-select inputId="f-res" [(ngModel)]="record.residentialCountryId" [options]="countries" optionLabel="itemName" optionValue="id" [filter]="true" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+          } @else {
+            <div class="col-md-2"><label class="lbl" for="f-title">Title</label>
+              <p-select inputId="f-title" [(ngModel)]="record.title" [options]="opt['Title'] || []" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+            <div class="col-md-4"><label class="lbl" for="f-first">First name <span class="req">*</span></label>
+              <input id="f-first" pInputText [(ngModel)]="record.firstName" class="w-full" /></div>
+            <div class="col-md-3"><label class="lbl" for="f-sur">Surname <span class="req">*</span></label>
+              <input id="f-sur" pInputText [(ngModel)]="record.surname" class="w-full" (blur)="checkDuplicates()" /></div>
+            <div class="col-md-3"><label class="lbl" for="f-oth">Other names</label>
+              <input id="f-oth" pInputText [(ngModel)]="record.othernames" class="w-full" /></div>
+
+            <div class="col-md-3"><label class="lbl" for="f-dob">Date of birth <span class="req">*</span></label>
+              <input id="f-dob" type="date" pInputText [(ngModel)]="record.birthDate" class="w-full" (change)="checkDuplicates()" /></div>
+            <div class="col-md-3"><label class="lbl" for="f-pob">Place of birth</label>
+              <input id="f-pob" pInputText [(ngModel)]="record.birthPlace" class="w-full" /></div>
+            <div class="col-md-3"><label class="lbl" for="f-gen">Gender</label>
+              <p-select inputId="f-gen" [(ngModel)]="record.gender" [options]="opt['Gender'] || []" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+            <div class="col-md-3"><label class="lbl" for="f-mai">Maiden name</label>
+              <input id="f-mai" pInputText [(ngModel)]="record.maidenName" class="w-full" /></div>
+
+            <div class="col-md-3"><label class="lbl" for="f-ms">Marital status</label>
+              <p-select inputId="f-ms" [(ngModel)]="record.maritalStatus" [options]="opt['MaritalStatus'] || []" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+            @if (record.maritalStatus === 'MARRIED') {
+              <div class="col-md-3"><label class="lbl" for="f-sp">Spouse's name</label>
+                <input id="f-sp" pInputText [(ngModel)]="record.spouseName" class="w-full" /></div>
+            }
+            <div class="col-md-3"><label class="lbl" for="f-mm">Mother's maiden name</label>
+              <input id="f-mm" pInputText [(ngModel)]="record.motherMaidenName" class="w-full" /></div>
+            <div class="col-md-3"><label class="lbl" for="f-edu">Education</label>
+              <p-select inputId="f-edu" [(ngModel)]="record.levelOfEducation" [options]="opt['Education'] || []" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+
+            <div class="col-md-4"><label class="lbl" for="f-nat">Nationality <span class="req">*</span></label>
+              <p-select inputId="f-nat" [(ngModel)]="record.nationalityId" [options]="countries" optionLabel="itemName" optionValue="id" [filter]="true" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+            <div class="col-md-4"><label class="lbl" for="f-res">Country of residence <span class="req">*</span></label>
+              <p-select inputId="f-res" [(ngModel)]="record.residentialCountryId" [options]="countries" optionLabel="itemName" optionValue="id" [filter]="true" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+            <div class="col-md-4"><label class="lbl" for="f-rs">Residential status</label>
+              <p-select inputId="f-rs" [(ngModel)]="record.residentialStatus" [options]="opt['ResidentialStatus'] || []" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+          }
+        </div>
+      </section>
+
+      <!-- IDENTIFICATION -->
+      <section class="panel" id="sec-identification">
+        <h2>Identification</h2>
+        <div class="row g-3">
+          <div class="col-md-3"><label class="lbl" for="f-idt">ID type <span class="req">*</span></label>
+            <p-select inputId="f-idt" [(ngModel)]="record.validId" [options]="opt['IdType'] || []" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+          <div class="col-md-3"><label class="lbl" for="f-idn">ID number <span class="req">*</span></label>
+            <input id="f-idn" pInputText [(ngModel)]="record.idNumber" class="w-full" (blur)="checkDuplicates()" /></div>
+          <div class="col-md-2"><label class="lbl" for="f-idi">Issue date</label>
+            <input id="f-idi" type="date" pInputText [(ngModel)]="record.idIssueDate" class="w-full" /></div>
+          <div class="col-md-2"><label class="lbl" for="f-idp">Place of issue</label>
+            <input id="f-idp" pInputText [(ngModel)]="record.placeOfIdIssued" class="w-full" /></div>
+          <div class="col-md-2"><label class="lbl" for="f-ide">Expiry date</label>
+            <input id="f-ide" type="date" pInputText [(ngModel)]="record.idExpiryDate" class="w-full" /></div>
+          <div class="col-md-4"><label class="lbl" for="f-tin">TIN</label>
+            <input id="f-tin" pInputText [(ngModel)]="record.tinNumber" class="w-full" /></div>
+          @if (isForeigner) {
+            <div class="col-12 sub">Residence permit</div>
+            <div class="col-md-3"><label class="lbl" for="f-rpn">Permit number</label>
+              <input id="f-rpn" pInputText [(ngModel)]="record.residencePermitNo" class="w-full" /></div>
+            <div class="col-md-3"><label class="lbl" for="f-rpp">Issued at</label>
+              <input id="f-rpp" pInputText [(ngModel)]="record.residencePermitIssuedPlace" class="w-full" /></div>
+            <div class="col-md-3"><label class="lbl" for="f-rpi">Issue date</label>
+              <input id="f-rpi" type="date" pInputText [(ngModel)]="record.residencePermitIssueDate" class="w-full" /></div>
+            <div class="col-md-3"><label class="lbl" for="f-rpe">Expiry date</label>
+              <input id="f-rpe" type="date" pInputText [(ngModel)]="record.residencePermitExpiryDate" class="w-full" /></div>
+          }
+        </div>
+      </section>
+
+      <!-- CONTACT -->
+      <section class="panel" id="sec-contact">
+        <h2>Contact and address</h2>
+        <div class="row g-3">
+          <div class="col-md-4"><label class="lbl" for="f-mob">Mobile <span class="req">*</span></label>
+            <input id="f-mob" pInputText [(ngModel)]="record.mobilePhone" class="w-full" (blur)="checkDuplicates()" /></div>
+          <div class="col-md-4"><label class="lbl" for="f-em">Email</label>
+            <input id="f-em" type="email" pInputText [(ngModel)]="record.emailAddress" class="w-full" (blur)="checkDuplicates()" /></div>
+          <div class="col-md-4"><label class="lbl" for="f-rph">Residential phone</label>
+            <input id="f-rph" pInputText [(ngModel)]="record.residentialPhone" class="w-full" /></div>
+          <div class="col-md-6"><label class="lbl" for="f-ra">Residential address</label>
+            <input id="f-ra" pInputText [(ngModel)]="record.residentialAddress" class="w-full" /></div>
+          <div class="col-md-6"><label class="lbl" for="f-pa">Postal address</label>
+            <input id="f-pa" pInputText [(ngModel)]="record.postalAddress" class="w-full" /></div>
+          <div class="col-md-6"><label class="lbl" for="f-lm">Nearest landmark</label>
+            <input id="f-lm" pInputText [(ngModel)]="record.nearestLandmark" class="w-full" /></div>
+          <div class="col-md-6"><label class="lbl" for="f-gps">Digital address (GPS)</label>
+            <input id="f-gps" pInputText [(ngModel)]="record.digitalAddressGps" class="w-full" /></div>
+        </div>
+      </section>
+
+      <!-- EMERGENCY -->
+      <section class="panel" id="sec-emergency">
+        <h2>Emergency contact</h2>
+        <div class="row g-3">
+          <div class="col-md-4"><label class="lbl" for="f-ecn">Name</label>
+            <input id="f-ecn" pInputText [(ngModel)]="record.emergencyContactName" class="w-full" /></div>
+          <div class="col-md-2"><label class="lbl" for="f-ecr">Relationship</label>
+            <p-select inputId="f-ecr" [(ngModel)]="record.emergencyContactRelationship" [options]="opt['Relationship'] || []" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+          <div class="col-md-3"><label class="lbl" for="f-ecm">Mobile</label>
+            <input id="f-ecm" pInputText [(ngModel)]="record.emergencyContactMobileNo" class="w-full" /></div>
+          <div class="col-md-3"><label class="lbl" for="f-ece">Email</label>
+            <input id="f-ece" type="email" pInputText [(ngModel)]="record.emergencyContactEmail" class="w-full" /></div>
+        </div>
+      </section>
+
+      <!-- EMPLOYMENT -->
+      <section class="panel" id="sec-employment">
+        <h2>{{ isCorporate ? 'Business and income' : 'Employment and income' }}</h2>
+        <div class="row g-3">
+          @if (!isCorporate) {
+            <div class="col-md-3"><label class="lbl" for="f-es">Employment status</label>
+              <p-select inputId="f-es" [(ngModel)]="record.employmentStatus" [options]="opt['EmploymentStatus'] || []" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+            <div class="col-md-3"><label class="lbl" for="f-occ">Occupation</label>
+              <input id="f-occ" pInputText [(ngModel)]="record.occupation" class="w-full" /></div>
+            <div class="col-md-6"><label class="lbl" for="f-emp">Employer</label>
+              <input id="f-emp" pInputText [(ngModel)]="record.employerName" class="w-full" /></div>
+            <div class="col-md-6"><label class="lbl" for="f-ea">Employer address</label>
+              <input id="f-ea" pInputText [(ngModel)]="record.employerAddress" class="w-full" /></div>
+            <div class="col-md-3"><label class="lbl" for="f-ep">Employer phone</label>
+              <input id="f-ep" pInputText [(ngModel)]="record.employerContactNumber" class="w-full" /></div>
+          }
+          <div class="col-md-3"><label class="lbl" for="f-nob">Nature of business</label>
+            <input id="f-nob" pInputText [(ngModel)]="record.natureOfBusiness" class="w-full" /></div>
+          <div class="col-md-4"><label class="lbl" for="f-inc2">Annual income</label>
+            <p-select inputId="f-inc2" [(ngModel)]="record.annualIncome" [options]="opt['AnnualIncome'] || []" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+          <div class="col-md-8"><label class="lbl" for="f-ois">Other source of income</label>
+            <input id="f-ois" pInputText [(ngModel)]="record.otherIncomeSource" class="w-full" /></div>
+        </div>
+      </section>
+
+      <!-- BANK -->
+      <section class="panel" id="sec-bank">
+        <h2>Bank details</h2>
+        <div class="row g-3">
+          <div class="col-md-4"><label class="lbl" for="f-bank">Bank</label>
+            <p-select inputId="f-bank" [(ngModel)]="record.bankId" [options]="banks" optionLabel="itemName" optionValue="id" [filter]="true" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" (onChange)="bankChanged()" /></div>
+          <div class="col-md-4"><label class="lbl" for="f-br">Branch</label>
+            <p-select inputId="f-br" [(ngModel)]="record.bankBranchId" [options]="branches" optionLabel="itemName" optionValue="id" [filter]="true" [showClear]="true" [placeholder]="record.bankId ? 'Select' : 'Choose a bank first'" [disabled]="!record.bankId" class="w-full" appendTo="body" /></div>
+          <div class="col-md-4"><label class="lbl" for="f-ban">Account name</label>
+            <input id="f-ban" pInputText [(ngModel)]="record.bankAccountName" class="w-full" /></div>
+          <div class="col-md-4"><label class="lbl" for="f-bno">Account number</label>
+            <input id="f-bno" pInputText [(ngModel)]="record.bankAccountNumber" class="w-full" /></div>
+        </div>
+      </section>
+
+      <!-- INVESTMENT -->
+      <section class="panel" id="sec-investment">
+        <h2>Investment profile and risk</h2>
+        <div class="row g-3">
+          <div class="col-md-4"><label class="lbl" for="f-obj">Investment objective</label>
+            <input id="f-obj" pInputText [(ngModel)]="record.investmentObjective" class="w-full" /></div>
+          <div class="col-md-4"><label class="lbl" for="f-ini">Initial investment (GHS)</label>
+            <p-inputnumber inputId="f-ini" [(ngModel)]="record.initialInvestmentAmount" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" [min]="0" class="w-full" inputStyleClass="w-full" /></div>
+          <div class="col-md-4"><label class="lbl" for="f-sof">Source of funds</label>
+            <p-select inputId="f-sof" [(ngModel)]="record.sourceOfFunds" [options]="opt['SourceOfFunds'] || []" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+          <div class="col-md-3"><label class="lbl" for="f-kn">Investment knowledge</label>
+            <p-select inputId="f-kn" [(ngModel)]="record.investmentKnowledgeId" [options]="riskLevels" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+          <div class="col-md-3"><label class="lbl" for="f-rp">Risk profile</label>
+            <p-select inputId="f-rp" [(ngModel)]="record.investmentRiskProfileId" [options]="riskLevels" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+          <div class="col-md-3"><label class="lbl" for="f-hz">Horizon</label>
+            <p-select inputId="f-hz" [(ngModel)]="record.investmentHorizon" [options]="opt['InvestmentHorizon'] || []" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+          <div class="col-md-3"><label class="lbl" for="f-act">Expected activity</label>
+            <p-select inputId="f-act" [(ngModel)]="record.anticipatedInvestmentActivity" [options]="opt['AnticipatedInvestmentActivity'] || []" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+          <div class="col-md-4"><label class="lbl" for="f-rl">Risk level</label>
+            <p-select inputId="f-rl" [(ngModel)]="record.riskLevelId" [options]="riskLevels" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+          <div class="col-md-8">
+            <span class="lbl">Wants to trade</span>
+            <div class="checks">
+              <label><p-checkbox [(ngModel)]="record.tradeShares" [binary]="true" /> Shares</label>
+              <label><p-checkbox [(ngModel)]="record.tradeFixedIncome" [binary]="true" /> Fixed income</label>
+              <label><p-checkbox [(ngModel)]="record.tradeMutualFunds" [binary]="true" /> Mutual funds</label>
+              <label><p-checkbox [(ngModel)]="record.hasDepositoryAccount" [binary]="true" /> Already has a depository account</label>
+            </div>
+          </div>
+          @if (record.hasDepositoryAccount) {
+            <div class="col-md-4"><label class="lbl" for="f-pdn">Existing depository account no.</label>
+              <input id="f-pdn" pInputText [(ngModel)]="record.providedDepAccountNo" class="w-full" /></div>
+            <div class="col-md-4"><label class="lbl" for="f-psb">Previous stockbroker</label>
+              <input id="f-psb" pInputText [(ngModel)]="record.providedStockBroker" class="w-full" /></div>
+          }
+        </div>
+      </section>
+
+      <!-- BENEFICIARIES -->
+      <section class="panel" id="sec-beneficiaries">
+        <div class="panel-head">
+          <h2>Beneficiaries</h2>
+          @if (beneficiaries.length) {
+            <span class="alloc" [class.warn]="allocated !== 100" [class.bad]="allocated > 100">{{ allocated }}% of 100% allocated</span>
+          }
+        </div>
+        @if (beneficiaries.length) {
+          <div class="table-scroll">
+            <table class="plain ben">
+              <thead><tr>
+                <th>Name <span class="req">*</span></th><th>Relationship</th><th>Phone <span class="req">*</span></th><th>Email</th>
+                <th class="num share">Share % <span class="req">*</span></th><th><span class="visually-hidden">Remove</span></th>
+              </tr></thead>
+              <tbody>
+                @for (b of beneficiaries; track $index; let i = $index) {
+                  <tr>
+                    <td><input pInputText [(ngModel)]="b.beneficiaryName" class="w-full" [attr.aria-label]="'Beneficiary ' + (i + 1) + ' name'" /></td>
+                    <td><p-select [(ngModel)]="b.relationship" [options]="opt['Relationship'] || []" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" [ariaLabel]="'Beneficiary ' + (i + 1) + ' relationship'" /></td>
+                    <td><input pInputText [(ngModel)]="b.beneficiaryPhone" class="w-full" [attr.aria-label]="'Beneficiary ' + (i + 1) + ' phone'" /></td>
+                    <td><input pInputText type="email" [(ngModel)]="b.beneficiaryEmail" class="w-full" [attr.aria-label]="'Beneficiary ' + (i + 1) + ' email'" /></td>
+                    <td><p-inputnumber [(ngModel)]="b.percentageAllocation" [min]="0" [max]="100" [maxFractionDigits]="2" class="w-full" inputStyleClass="w-full text-right" [ariaLabel]="'Beneficiary ' + (i + 1) + ' share'" /></td>
+                    <td class="num"><p-button icon="pi pi-times" [text]="true" [rounded]="true" severity="danger" (onClick)="removeBeneficiary(i)" [ariaLabel]="'Remove beneficiary ' + (i + 1)" /></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="muted">No beneficiaries added.</p>
+        }
+        <p-button label="Add beneficiary" icon="pi pi-plus" severity="secondary" [outlined]="true" size="small" (onClick)="addBeneficiary()" />
+        <p class="muted hint">ID, date of birth and next-of-kin details per beneficiary are on the Beneficiaries page.</p>
+      </section>
+
+      <!-- COMPLIANCE -->
+      <section class="panel" id="sec-pep">
+        <h2>Compliance</h2>
+        <div class="q">
+          <span>Politically exposed person (PEP) in Ghana?</span>
+          <div class="yn">
+            <label><p-radiobutton name="pep1" [value]="true" [(ngModel)]="record.pepInGhana" /> Yes</label>
+            <label><p-radiobutton name="pep1" [value]="false" [(ngModel)]="record.pepInGhana" /> No</label>
+          </div>
+        </div>
+        @if (record.pepInGhana) {
+          <div class="detail"><label class="lbl" for="f-pd1">Position held</label>
+            <input id="f-pd1" pInputText [(ngModel)]="record.pepInGhanaDetails" class="w-full" /></div>
+        }
+        <div class="q">
+          <span>PEP outside Ghana?</span>
+          <div class="yn">
+            <label><p-radiobutton name="pep2" [value]="true" [(ngModel)]="record.pepOutsideGhana" /> Yes</label>
+            <label><p-radiobutton name="pep2" [value]="false" [(ngModel)]="record.pepOutsideGhana" /> No</label>
+          </div>
+        </div>
+        @if (record.pepOutsideGhana) {
+          <div class="detail"><label class="lbl" for="f-pd2">Position held and country</label>
+            <input id="f-pd2" pInputText [(ngModel)]="record.pepOutsideGhanaDetails" class="w-full" /></div>
+        }
+        <div class="q" id="sec-tax">
+          <span>Citizen of another country?</span>
+          <div class="yn">
+            <label><p-radiobutton name="fc" [value]="true" [(ngModel)]="record.foreignCitizen" /> Yes</label>
+            <label><p-radiobutton name="fc" [value]="false" [(ngModel)]="record.foreignCitizen" /> No</label>
+          </div>
+        </div>
+        <div class="q">
+          <span>Holds a foreign passport?</span>
+          <div class="yn">
+            <label><p-radiobutton name="fp" [value]="true" [(ngModel)]="record.hasForeignPassport" /> Yes</label>
+            <label><p-radiobutton name="fp" [value]="false" [(ngModel)]="record.hasForeignPassport" /> No</label>
+          </div>
+        </div>
+        <div class="q">
+          <span>Holds a US green card?</span>
+          <div class="yn">
+            <label><p-radiobutton name="gc" [value]="true" [(ngModel)]="record.hasGreenCard" /> Yes</label>
+            <label><p-radiobutton name="gc" [value]="false" [(ngModel)]="record.hasGreenCard" /> No</label>
+          </div>
+        </div>
+        <div class="q">
+          <span>Tax resident outside Ghana?</span>
+          <div class="yn">
+            <label><p-radiobutton name="fr" [value]="true" [(ngModel)]="record.foreignResident" /> Yes</label>
+            <label><p-radiobutton name="fr" [value]="false" [(ngModel)]="record.foreignResident" /> No</label>
+          </div>
+        </div>
+        @if (foreignTies) {
+          <div class="row g-3 detail">
+            <div class="col-md-6"><label class="lbl" for="f-ffn">Name used abroad</label>
+              <input id="f-ffn" pInputText [(ngModel)]="record.foreignFullName" class="w-full" /></div>
+            <div class="col-md-6"><label class="lbl" for="f-ftid">Foreign tax ID</label>
+              <input id="f-ftid" pInputText [(ngModel)]="record.foreignTaxId" class="w-full" /></div>
+            <div class="col-md-6"><label class="lbl" for="f-fra">Foreign residential address</label>
+              <input id="f-fra" pInputText [(ngModel)]="record.foreignResidentialAddress" class="w-full" /></div>
+            <div class="col-md-6"><label class="lbl" for="f-fma">Foreign mailing address</label>
+              <input id="f-fma" pInputText [(ngModel)]="record.foreignMailingAddress" class="w-full" /></div>
+            <div class="col-md-6"><label class="lbl" for="f-ftp">Foreign phone</label>
+              <input id="f-ftp" pInputText [(ngModel)]="record.foreignTelephoneNumber" class="w-full" /></div>
+          </div>
+        }
+      </section>
+
+      <!-- PHOTO -->
+      <section class="panel" id="sec-photo">
+        <h2>Photo and signature</h2>
+        <div class="uploads">
+          <div class="upload">
+            @if (newImage || record.profileImage) {
+              <img [src]="newImage || record.profileImage" alt="Profile photo" class="avatar lg" />
+            } @else {
+              <span class="avatar lg"><i class="pi pi-user"></i></span>
+            }
+            <label class="file-btn">
+              {{ newImage || record.profileImage ? 'Replace photo' : 'Upload photo' }}
+              <input type="file" accept=".jpg,.jpeg,.png" (change)="pickImage($event, 'photo')" class="visually-hidden" />
+            </label>
+          </div>
+          <div class="upload">
+            @if (newSignature || record.signatureImage) {
+              <img [src]="newSignature || record.signatureImage" alt="Signature" class="sig" />
+            } @else {
+              <span class="sig empty">No signature</span>
+            }
+            <label class="file-btn">
+              {{ newSignature || record.signatureImage ? 'Replace signature' : 'Upload signature' }}
+              <input type="file" accept=".jpg,.jpeg,.png" (change)="pickImage($event, 'signature')" class="visually-hidden" />
+            </label>
+          </div>
+        </div>
+        <p class="muted hint">JPEG or PNG, up to 5 MB each.</p>
+      </section>
+    </div>
+
+    <!-- SIDE -->
+    <aside class="side">
+      <nav class="panel index" aria-label="Form sections">
+        <div class="index-head">On this page</div>
+        @for (r of index; track r.id) {
+          <a href="#" (click)="jump(r.id, $event)">
+            <span class="dot" [class]="r.state"></span>
+            <span class="grow">{{ r.label }}</span>
+            <small [class]="r.state">{{ r.note }}</small>
+          </a>
+        }
+      </nav>
+
+      @if (!submitted) {
+        @if (requiredMissing.length) {
+          <section class="note bad">
+            <h3>Before it can be sent for verification</h3>
+            @for (m of requiredMissing; track $index) {
+              <a href="#" (click)="jump(m.section, $event)">{{ m.label }} is missing</a>
+            }
+            <small>You can still save it as incomplete and finish later.</small>
+          </section>
+        } @else {
+          <section class="note ok">
+            <h3>Ready for verification</h3>
+            <small>All required fields are filled in.</small>
+          </section>
+        }
+      }
+
+      @if (duplicates.length) {
+        <section class="note warn">
+          <h3>Possible duplicate</h3>
+          @for (d of duplicates; track d.id) {
+            <div><a [routerLink]="['/accounts/investors', d.id]" target="_blank">{{ d.displayName }} ({{ d.investorCode || 'no code' }})</a> · {{ d.reasons.join(', ') }}</div>
+          }
+        </section>
+      }
+
+      <section class="panel">
+        <h2>Registration</h2>
+        <div class="reg">
+          <label class="lbl" for="f-reg">Registration date</label>
+          <input id="f-reg" type="date" pInputText [(ngModel)]="record.registrationDate" class="w-full" />
+          <label class="toggle">
+            <p-checkbox [(ngModel)]="record.active" [binary]="true" />
+            <span><span>Portal login enabled</span><small class="muted">{{ id ? 'The client can sign in to the client portal.' : 'The client is sent a welcome message on first save.' }}</small></span>
+          </label>
+          <span class="lbl">Alerts</span>
+          <div class="checks">
+            <label><p-checkbox [(ngModel)]="record.enableSmsAlert" [binary]="true" /> SMS</label>
+            <label><p-checkbox [(ngModel)]="record.enableEmailAlert" [binary]="true" /> Email</label>
+            <label><p-checkbox [(ngModel)]="record.purchaseAlert" [binary]="true" /> Purchases</label>
+            <label><p-checkbox [(ngModel)]="record.salesAlert" [binary]="true" /> Sales</label>
+            <label><p-checkbox [(ngModel)]="record.cashTransactionAlert" [binary]="true" /> Cash movements</label>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <div class="panel footer">
+    <span class="muted">{{ completeCount }} of {{ index.length }} sections complete{{ !submitted && requiredMissing.length ? ' · ' + requiredMissing.length + ' required field(s) missing' : '' }}</span>
+    <ng-container *ngTemplateOutlet="actions"></ng-container>
+  </div>
+
+  <ng-template #actions>
+    <div class="actions">
+      <a class="cancel" [routerLink]="id ? ['/accounts/investors', id] : ['/accounts/investors']">Cancel</a>
+      @if (submitted) {
+        <p-button label="Save changes" icon="pi pi-check" [loading]="saving" (onClick)="save(false)" />
+      } @else {
+        <p-button label="Save as incomplete" severity="secondary" [outlined]="true" [loading]="saving" (onClick)="save(false)" />
+        <p-button label="Save and send for verification" icon="pi pi-send" [loading]="saving" [disabled]="requiredMissing.length > 0" (onClick)="save(true)" />
+      }
+    </div>
+  </ng-template>
+} @else if (loading) {
+  <p class="muted">Loading…</p>
+} @else {
+  <p class="muted">Investor not found.</p>
+}

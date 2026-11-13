@@ -1,0 +1,61 @@
+@if (!embedded) {
+  <app-page-header title="Upload Investors" subtitle="Import investors, beneficiaries and principal accounts from the legacy Excel export" />
+}
+
+<div class="card">
+  <div class="filter-bar">
+    <div class="field">
+      <label class="field-label">Excel workbook (.xls / .xlsx)</label>
+      <input type="file" accept=".xls,.xlsx" (change)="pick($event)" />
+    </div>
+    <p-button label="Upload & Preview" icon="pi pi-upload" [loading]="previewing" [disabled]="!upload" (onClick)="runPreview()" />
+    @if (preview) {
+      <p-button label="Import" icon="pi pi-check" [loading]="importing" [disabled]="!(preview.inserts + preview.updates)" (onClick)="runImport()" />
+      <p-button label="Clear" severity="secondary" [outlined]="true" (onClick)="reset()" />
+    }
+  </div>
+  <p class="muted small">Rows are matched on the investor id in the first column: existing investors are updated, new ones are
+    added, nothing is deleted. Beneficiaries are matched on name. Imported investors are marked verified and get a principal account
+    on the GSE with their depository number.</p>
+</div>
+
+@if (result) {
+  <div class="card">
+    <div class="card-title">Import complete</div>
+    <app-stat-tiles [tiles]="resultTiles" />
+    @if (result.skipped?.length) {
+      <div class="section-title">Skipped rows</div>
+      <p-table [value]="result.skipped" size="small" [paginator]="result.skipped.length > 20" [rows]="20">
+        <ng-template #header><tr><th>Row</th><th>Investor Id</th><th>Name</th><th>Reason</th></tr></ng-template>
+        <ng-template #body let-r><tr><td>{{ r.rowNo }}</td><td>{{ r.investorId }}</td><td>{{ r.name }}</td><td>{{ r.notes }}</td></tr></ng-template>
+      </p-table>
+    }
+  </div>
+}
+
+@if (preview) {
+  <div class="card">
+    <div class="card-title">Preview: {{ upload?.fileName }}</div>
+    <app-stat-tiles [tiles]="previewTiles" />
+    <p-table [value]="preview.rows" size="small" [paginator]="true" [rows]="20" [rowsPerPageOptions]="[20, 50, 100]">
+      <ng-template #header>
+        <tr><th>Row</th><th>Investor Code</th><th>Name</th><th>Type</th><th>Email</th><th>Mobile</th><th>Depository No</th><th>Beneficiaries</th><th>Action</th><th>Notes</th></tr>
+      </ng-template>
+      <ng-template #body let-r>
+        <tr>
+          <td>{{ r.rowNo }}</td>
+          <td>{{ r.investorId }}</td>
+          <td>{{ r.name }}</td>
+          <td>{{ r.investorType }}</td>
+          <td>{{ r.emailAddress }}</td>
+          <td>{{ r.mobilePhone }}</td>
+          <td>{{ r.depAccountNo }}</td>
+          <td class="text-right">{{ r.beneficiaryCount }}</td>
+          <td><p-tag [value]="r.action" [severity]="r.action === 'INSERT' ? 'success' : r.action === 'UPDATE' ? 'info' : 'danger'" /></td>
+          <td class="small">{{ r.notes }}</td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="10">No rows found in the file.</td></tr></ng-template>
+    </p-table>
+  </div>
+}

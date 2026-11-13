@@ -1,0 +1,392 @@
+<div class="dash">
+  <!-- HEADER: greeting, value date and system status -->
+  <header class="dash-head">
+    <div>
+      <p class="eyebrow">{{ today | date: 'EEEE d MMMM y' }}</p>
+      <h1>{{ greeting }}, {{ firstName }}</h1>
+      @if (summary) {
+        <p class="dash-sub">Figures as at the latest end of day, {{ summary.valueDate | date: 'd MMM y' }}.</p>
+      }
+    </div>
+    <div class="head-actions">
+      @if (summary) {
+        <span class="status" [class]="eodTone" >
+          <i class="pi" [class.pi-check-circle]="eodTone === 'ok'" [class.pi-exclamation-circle]="eodTone !== 'ok'"></i>
+          End of day · {{ !summary.eodPresent ? 'not run' : summary.eodAuthorised ? 'authorised' : 'awaiting authorisation' }}
+        </span>
+        <span class="status" [class.ok]="summary.pricesFresh" [class.warn]="!summary.pricesFresh"
+              [pTooltip]="summary.pricesFresh ? '' : summary.stalePrices + ' stock(s) have no price for the value date'" tooltipPosition="bottom">
+          <i class="pi pi-chart-line"></i>
+          Prices · {{ summary.pricedToday }}/{{ summary.listedStocks }} fresh
+        </span>
+      }
+      <p-button icon="pi pi-refresh" [rounded]="true" [text]="true" severity="secondary" [loading]="loading" (onClick)="load()" pTooltip="Refresh" tooltipPosition="bottom" ariaLabel="Refresh" />
+    </div>
+  </header>
+
+  <!-- ONBOARDING PIPELINE: investors waiting at each stage -->
+  @if (onboarding) {
+    <div class="pipeline">
+      <a class="stage" routerLink="/accounts/incomplete-registrations" [class.idle]="!onboarding.registrationsIncomplete">
+        <span class="stage-icon grey"><i class="pi pi-user-minus"></i></span>
+        <div class="stage-body">
+          <div class="stage-label"><span class="step-no">1</span>Incomplete registration</div>
+          <div class="stage-count">{{ onboarding.registrationsIncomplete | number }}</div>
+          <div class="stage-foot">Signed up but have not finished their profile</div>
+        </div>
+        <i class="pi pi-arrow-right stage-go"></i>
+      </a>
+      <a class="stage" routerLink="/accounts/verifications" [class.idle]="!onboarding.verificationsPending">
+        <span class="stage-icon gold"><i class="pi pi-verified"></i></span>
+        <div class="stage-body">
+          <div class="stage-label"><span class="step-no">2</span>Pending verification</div>
+          <div class="stage-count">{{ onboarding.verificationsPending | number }}</div>
+          <div class="stage-foot">Profile complete, waiting for KYC verification</div>
+        </div>
+        <i class="pi pi-arrow-right stage-go"></i>
+      </a>
+      <a class="stage" routerLink="/accounts/account-creation" [class.idle]="!onboarding.accountCreationPending">
+        <span class="stage-icon blue"><i class="pi pi-id-card"></i></span>
+        <div class="stage-body">
+          <div class="stage-label"><span class="step-no">3</span>Pending account creation</div>
+          <div class="stage-count">{{ onboarding.accountCreationPending | number }}</div>
+          <div class="stage-foot">Verified, no trading account opened yet</div>
+        </div>
+        <i class="pi pi-arrow-right stage-go"></i>
+      </a>
+    </div>
+  }
+
+  <!-- KPIs -->
+  @if (summary) {
+    <div class="kpis">
+      <div class="kpi">
+        <span class="kpi-icon brand"><i class="pi pi-briefcase"></i></span>
+        <div>
+          <div class="kpi-label">Assets under administration</div>
+          <div class="kpi-value" [pTooltip]="'GHS ' + (summary.assetValue | number: '1.2-2')">GHS {{ compact(summary.assetValue) }}</div>
+          <div class="kpi-foot">Equities, fixed income and cash</div>
+        </div>
+      </div>
+      <div class="kpi">
+        <span class="kpi-icon gold"><i class="pi pi-wallet"></i></span>
+        <div>
+          <div class="kpi-label">Client cash</div>
+          <div class="kpi-value" [pTooltip]="'GHS ' + (summary.cashBalance | number: '1.2-2')">GHS {{ compact(summary.cashBalance) }}</div>
+          <div class="kpi-foot">
+            <span class="meter"><span [style.width.%]="summary.cashPercentOfAua"></span></span>
+            {{ summary.cashPercentOfAua | number: '1.1-1' }}% of AUA
+          </div>
+        </div>
+      </div>
+      <div class="kpi">
+        <span class="kpi-icon green"><i class="pi pi-percentage"></i></span>
+        <div>
+          <div class="kpi-label">Fees month to date</div>
+          <div class="kpi-value" [pTooltip]="'GHS ' + (summary.revenueMtd | number: '1.2-2')">GHS {{ compact(summary.revenueMtd) }}</div>
+          <div class="kpi-foot">Commission and charges earned</div>
+        </div>
+      </div>
+      <div class="kpi">
+        <span class="kpi-icon blue"><i class="pi pi-arrow-right-arrow-left"></i></span>
+        <div>
+          <div class="kpi-label">Net flow month to date</div>
+          @if (summary.netFlowAvailable) {
+            <div class="kpi-value" [class.neg]="summary.netFlowMtd < 0">
+              {{ summary.netFlowMtd < 0 ? '−' : '+' }}GHS {{ compact(abs(summary.netFlowMtd)) }}
+            </div>
+            <div class="kpi-foot">Fund subscriptions less redemptions</div>
+          } @else {
+            <div class="kpi-value muted">Not available</div>
+            <div class="kpi-foot">No fund flows recorded yet</div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="board">
+    <!-- WORK QUEUE -->
+    @if (queue) {
+      <section class="panel span-4">
+        <header class="panel-head">
+          <span class="panel-icon warn"><i class="pi pi-inbox"></i></span>
+          <div><h2>Needs attention</h2><p>Your queues today</p></div>
+          @if (queue.actionsOutstanding) { <span class="count-badge">{{ queue.actionsOutstanding }}</span> }
+        </header>
+        <div class="queue">
+          @for (q of queue.items; track q.key) {
+            <a class="queue-row" [class.zero]="!q.count" [routerLink]="q.route" [queryParams]="queryOf(q)">
+              <span class="dot" [class]="queueTone(q)"></span>
+              <span class="queue-label">
+                {{ q.label }}
+                @if (q.value) { <small>GHS {{ compact(q.value) }}</small> }
+              </span>
+              <span class="queue-count">{{ q.count }}</span>
+              <i class="pi pi-angle-right chev"></i>
+            </a>
+          } @empty {
+            <div class="empty"><i class="pi pi-check-circle"></i>Nothing on your queues.</div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- ORDER FLOW -->
+    @if (orders) {
+      <section class="panel span-8">
+        <header class="panel-head">
+          <span class="panel-icon brand"><i class="pi pi-chart-bar"></i></span>
+          <div><h2>Order flow</h2><p>{{ orders.valueDate | date: 'd MMM y' }}</p></div>
+        </header>
+        @if (orders.ordersToday > 0) {
+          <div class="flow-top">
+            <div class="big-stat"><span>{{ orders.ordersToday }}</span><small>orders</small></div>
+            <div class="big-stat"><span>GHS {{ compact(orders.considerationToday) }}</span><small>consideration</small></div>
+            <div class="chips">
+              <span class="chip"><b>{{ orders.fillRate | number: '1.0-1' }}%</b> fill rate</span>
+              <span class="chip"><b>{{ orders.cancelRate | number: '1.0-1' }}%</b> cancelled</span>
+              <span class="chip"><b>GHS {{ compact(orders.averageOrderSize) }}</b> avg order</span>
+            </div>
+          </div>
+
+          <div class="stack">
+            @for (s of orders.ordersByStatus; track s.name; let i = $index) {
+              <span [style.flex-grow]="s.value" [style.background]="color(i)" [pTooltip]="s.name + ': ' + s.value"></span>
+            }
+          </div>
+          <div class="legend">
+            @for (s of orders.ordersByStatus; track s.name; let i = $index) {
+              <span><i [style.background]="color(i)"></i>{{ s.name }} <b>{{ s.value }}</b></span>
+            }
+          </div>
+
+          <div class="flow-split">
+            <div>
+              <h3>Buy vs sell</h3>
+              <div class="split-bar">
+                <span class="buy" [style.flex-grow]="orders.buyPercent || 0.0001"></span>
+                <span class="sell" [style.flex-grow]="orders.sellPercent || 0.0001"></span>
+              </div>
+              <div class="split-legend">
+                <div><i class="buy"></i>Buy <b>{{ orders.buyPercent | number: '1.0-0' }}%</b><small>GHS {{ compact(orders.buyValueToday) }}</small></div>
+                <div class="text-right"><i class="sell"></i>Sell <b>{{ orders.sellPercent | number: '1.0-0' }}%</b><small>GHS {{ compact(orders.sellValueToday) }}</small></div>
+              </div>
+            </div>
+            <div>
+              <h3>Most traded</h3>
+              @for (s of orders.topStocks; track s.name; let i = $index) {
+                <div class="rank-row">
+                  <span class="rank">{{ i + 1 }}</span>
+                  <span class="rank-name">{{ s.name }}</span>
+                  <span class="bar"><span [style.width.%]="s.percent"></span></span>
+                  <span class="rank-value">{{ compact(s.value) }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="empty"><i class="pi pi-moon"></i>No orders on {{ orders.valueDate | date: 'd MMM y' }}.</div>
+        }
+      </section>
+    }
+
+    <!-- PAYMENTS -->
+    @if (payments) {
+      <section class="panel span-4">
+        <header class="panel-head">
+          <span class="panel-icon gold"><i class="pi pi-credit-card"></i></span>
+          <div><h2>Payments</h2><p>This month</p></div>
+          @if (payments.paymentsFailed) { <p-tag [value]="payments.paymentsFailed + ' failed'" severity="danger" [rounded]="true" /> }
+        </header>
+        <div class="big-stat solo"><span>GHS {{ compact(payments.paymentsTotal) }}</span><small>{{ payments.paymentsCount | number }} movements, gross</small></div>
+        <div class="stack slim">
+          @for (p of payments.paymentsByChannel; track p.name; let i = $index) {
+            <span [style.flex-grow]="p.value" [style.background]="color(i)" [pTooltip]="p.name + ': GHS ' + (p.value | number: '1.0-0')"></span>
+          }
+        </div>
+        <div class="channel-list">
+          @for (p of payments.paymentsByChannel; track p.name; let i = $index) {
+            <div><i [style.background]="color(i)"></i><span>{{ p.name }}</span><b>{{ p.percent | number: '1.0-0' }}%</b></div>
+          }
+        </div>
+        <div class="ring-row">
+          <div class="ring-stat"><span class="ring" [style.--p]="payments.settlementRate"><b>{{ payments.settlementRate | number: '1.0-0' }}%</b></span>Settled</div>
+          <div class="ring-stat"><span class="ring gold" [style.--p]="payments.payoutReadiness"><b>{{ payments.payoutReadiness | number: '1.0-0' }}%</b></span>Payout ready</div>
+        </div>
+      </section>
+    }
+
+    <!-- CLIENT CARE -->
+    @if (care) {
+      <section class="panel span-4">
+        <header class="panel-head">
+          <span class="panel-icon blue"><i class="pi pi-comments"></i></span>
+          <div><h2>Client care</h2><p>Open work and this month</p></div>
+          @if (care.casesBreached) { <p-tag [value]="care.casesBreached + ' past target'" severity="danger" [rounded]="true" /> }
+        </header>
+        <div class="tiles">
+          <a class="tile" routerLink="/support/cases"><span>{{ care.casesOpen }}</span>Open cases</a>
+          <a class="tile" routerLink="/support/cases"><span>{{ care.complaintsOpen }}</span>Complaints</a>
+          <a class="tile" [class.alert]="care.casesEscalated" routerLink="/support/cases"><span>{{ care.casesEscalated }}</span>Escalated</a>
+        </div>
+        <div class="raised">
+          <div><small>Raised</small><b>{{ care.casesRaisedThisMonth }}</b></div>
+          <i class="pi pi-arrow-right"></i>
+          <div><small>Resolved</small><b>{{ care.casesResolvedThisMonth }}</b></div>
+          <div class="sat">
+            <small>Satisfaction</small>
+            @if (care.satisfactionAverage) {
+              <b>{{ care.satisfactionAverage | number: '1.1-1' }}<em>/5</em></b>
+              <span class="stars"><span [style.width.%]="care.satisfactionAverage * 20"></span></span>
+            } @else { <b class="muted">–</b> }
+          </div>
+        </div>
+      </section>
+
+      <section class="panel span-4">
+        <header class="panel-head">
+          <span class="panel-icon blue"><i class="pi pi-tags"></i></span>
+          <div><h2>What clients are raising</h2><p>Last 3 months</p></div>
+        </header>
+        @for (c of care.casesByCategory; track c.name) {
+          <div class="hbar">
+            <div class="hbar-label"><span>{{ c.name }}</span><b>{{ c.value }}</b></div>
+            <div class="bar"><span class="blue" [style.width.%]="c.percent"></span></div>
+          </div>
+        } @empty {
+          <div class="empty"><i class="pi pi-check-circle"></i>No cases raised.</div>
+        }
+      </section>
+    }
+
+    <!-- CLIENTS -->
+    @if (clients) {
+      <section class="panel span-4">
+        <header class="panel-head">
+          <span class="panel-icon green"><i class="pi pi-filter"></i></span>
+          <div><h2>Onboarding funnel</h2><p>Last 90 days</p></div>
+        </header>
+        <div class="funnel">
+          <div class="step" style="--w: 100%"><span>Registered</span><b>{{ clients.onboardRegistered }}</b></div>
+          <div class="conv">{{ clients.completedPercent | number: '1.0-0' }}% completed their profile</div>
+          <div class="step mid" [style.--w]="max(clients.completedPercent, 28) + '%'"><span>Completed</span><b>{{ clients.onboardCompleted }}</b></div>
+          <div class="conv">{{ clients.verifiedPercent | number: '1.0-0' }}% of registrations verified</div>
+          <div class="step last" [style.--w]="max(clients.verifiedPercent, 22) + '%'"><span>Verified</span><b>{{ clients.onboardVerified }}</b></div>
+        </div>
+        <div class="foot-note">
+          <span><b>{{ clients.onboardRegistered - clients.onboardCompleted }}</b> dropped before completing</span>
+          <a routerLink="/accounts/verifications"><b>{{ clients.onboardCompleted - clients.onboardVerified }}</b> awaiting verification</a>
+        </div>
+      </section>
+
+      <section class="panel span-4">
+        <header class="panel-head">
+          <span class="panel-icon red"><i class="pi pi-shield"></i></span>
+          <div><h2>Compliance &amp; AML</h2><p>Investor register checks</p></div>
+        </header>
+        <div class="checks">
+          <div class="check" [class.bad]="clients.idsExpired"><i class="pi" [class.pi-times-circle]="clients.idsExpired" [class.pi-check-circle]="!clients.idsExpired"></i><span>IDs expired</span><b>{{ clients.idsExpired }}</b></div>
+          <div class="check" [class.warn]="clients.idsExpiringSoon"><i class="pi pi-clock"></i><span>IDs expiring in 60 days</span><b>{{ clients.idsExpiringSoon }}</b></div>
+          <div class="check" [class.warn]="clients.sourceOfFundsMissing"><i class="pi pi-file-excel"></i><span>Source of funds missing</span><b>{{ clients.sourceOfFundsMissing }}</b></div>
+          <div class="check info"><i class="pi pi-flag"></i><span>Politically exposed</span><b>{{ clients.pepFlagged }}</b></div>
+          <div class="check info"><i class="pi pi-globe"></i><span>Reportable foreign persons</span><b>{{ clients.reportableForeign }}</b></div>
+        </div>
+      </section>
+
+      <section class="panel span-4">
+        <header class="panel-head">
+          <span class="panel-icon green"><i class="pi pi-mobile"></i></span>
+          <div><h2>Client channel</h2><p>App use and alert sign-up</p></div>
+        </header>
+        <div class="ring-row">
+          <div class="ring-stat"><span class="ring" [style.--p]="clients.appAdoption"><b>{{ clients.appAdoption | number: '1.0-0' }}%</b></span>On the app</div>
+          <div class="mini-stats">
+            <div><b>{{ clients.sessionsActive | number }}</b><small>active sessions</small></div>
+            <div><b>{{ clients.investorsVerified | number }}</b><small>verified investors</small></div>
+          </div>
+        </div>
+        <div class="alerts">
+          @for (a of clients.alertCoverage; track a.name) {
+            <div class="hbar compact">
+              <div class="hbar-label"><span>{{ a.name }} alerts</span><b>{{ a.percent | number: '1.0-0' }}%</b></div>
+              <div class="bar"><span class="green" [style.width.%]="a.percent"></span></div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- FIXED INCOME -->
+    @if (fixedIncome) {
+      <section class="panel span-4">
+        <header class="panel-head">
+          <span class="panel-icon gold"><i class="pi pi-calendar"></i></span>
+          <div><h2>Corporate actions</h2><p>Next 30 days</p></div>
+        </header>
+        @for (a of fixedIncome.upcomingActions; track $index) {
+          <div class="date-row">
+            <div class="date-chip"><b>{{ a.valueDate | date: 'd' }}</b>{{ a.valueDate | date: 'MMM' }}</div>
+            <div class="date-main"><strong>{{ a.securityCode }}</strong><small>{{ a.issuerName }}</small></div>
+            <div class="date-side"><span class="pill-type">{{ a.actionType }}</span><small>{{ a.interestRate | number: '1.2-2' }}%</small></div>
+          </div>
+        } @empty {
+          <div class="empty"><i class="pi pi-calendar"></i>None scheduled.</div>
+        }
+      </section>
+
+      <section class="panel span-4">
+        <header class="panel-head">
+          <span class="panel-icon gold"><i class="pi pi-hourglass"></i></span>
+          <div><h2>Maturing securities</h2><p>Next 30 days</p></div>
+        </header>
+        @for (m of fixedIncome.maturingSecurities; track $index) {
+          <div class="date-row">
+            <div class="date-chip" [class.warn]="m.statusStyle === 'is-warn'"><b>{{ m.maturityDate | date: 'd' }}</b>{{ m.maturityDate | date: 'MMM' }}</div>
+            <div class="date-main"><strong>{{ m.securityCode }}</strong><small>{{ m.assetSubClass }}</small></div>
+            <div class="date-side">
+              <p-tag [value]="m.status" [rounded]="true" [severity]="m.statusStyle === 'is-warn' ? 'warn' : m.statusStyle === 'is-ok' ? 'success' : 'secondary'" />
+              @if (m.coupon != null) { <small>{{ m.coupon | number: '1.2-2' }}%</small> }
+            </div>
+          </div>
+        } @empty {
+          <div class="empty"><i class="pi pi-check-circle"></i>Nothing maturing.</div>
+        }
+      </section>
+    }
+
+    <!-- CLIENT BOOK -->
+    @if (book) {
+      <section class="panel span-4">
+        <header class="panel-head">
+          <span class="panel-icon brand"><i class="pi pi-users"></i></span>
+          <div><h2>Client book</h2><p>{{ book.accountsTotal | number }} accounts</p></div>
+        </header>
+        @for (b of book.accountsByClassification; track b.name; let i = $index) {
+          <div class="hbar">
+            <div class="hbar-label"><span>{{ b.name }}</span><b>{{ b.value | number }}</b></div>
+            <div class="bar"><span [style.width.%]="b.percent" [style.background]="color(i)"></span></div>
+          </div>
+        }
+      </section>
+
+      <section class="panel span-12">
+        <header class="panel-head">
+          <span class="panel-icon brand"><i class="pi pi-history"></i></span>
+          <div><h2>Recent activity</h2><p>Latest client actions</p></div>
+        </header>
+        <div class="timeline">
+          @for (a of book.recentActivity; track $index) {
+            <div class="event">
+              <span class="event-icon" [class]="activityTone(a.activityType)"><i class="pi" [class]="activityIcon(a.activityType)"></i></span>
+              <div class="event-main"><strong>{{ a.activityType }}</strong><small>{{ a.description }}</small></div>
+              <span class="event-account">{{ a.accountCode }}</span>
+            </div>
+          } @empty {
+            <div class="empty"><i class="pi pi-history"></i>No recent activity.</div>
+          }
+        </div>
+      </section>
+    }
+  </div>
+</div>

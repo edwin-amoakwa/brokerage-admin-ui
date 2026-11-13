@@ -1,0 +1,353 @@
+/* =============================================================================
+   Sign-in screen, ported from the JSF login (webapp/assets/css/login.css).
+   Everything is scoped under .login-screen so none of it reaches the app.
+   ========================================================================== */
+.login-screen {
+    --ink: #0B1F2A;
+    --ink-2: #143441;
+    --paper: #F7F5F0;
+    --line: #DCD6CB;
+    --text: #16252C;
+    --muted: #5F7079;
+    --faint: #8A9AA2;
+    --gold: #E8B04B;
+    --gold-deep: #B8871F;
+    --ok: #2E9E6B;
+    --bad: #C0554A;
+
+    min-height: 100vh;
+    background: var(--paper);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+
+    h1 { margin: 0; text-wrap: balance; }
+    p { margin: 0; }
+    button { font-family: inherit; font-size: inherit; cursor: pointer; }
+
+    /* =============================================================================
+       SHELL
+       ========================================================================== */
+    .screen {
+        display: grid;
+        grid-template-columns: minmax(0, 54fr) minmax(0, 46fr);
+        min-height: 100vh;
+    }
+
+    /* =============================================================================
+       LEFT - IDENTITY
+       ========================================================================== */
+    .pane-ops {
+        background: linear-gradient(163deg, var(--ink-2) 0%, var(--ink) 68%);
+        color: #C2D2D9;
+        display: flex;
+        flex-direction: column;
+        padding: 44px 56px 30px;
+        position: relative;
+        overflow: hidden;
+    }
+    /* faint grid, fading out - a plotting surface, not a chart */
+    .pane-ops::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(rgba(255, 255, 255, .03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, .03) 1px, transparent 1px);
+        background-size: 48px 48px;
+        -webkit-mask-image: radial-gradient(110% 75% at 30% 20%, #000 10%, transparent 78%);
+        mask-image: radial-gradient(110% 75% at 30% 20%, #000 10%, transparent 78%);
+        pointer-events: none;
+    }
+    .pane-ops > * { position: relative; z-index: 1; }
+
+    .brand img {
+        height: 38px;
+        width: auto;
+        display: block;
+    }
+
+    .ops-body {
+        margin-top: auto;
+        margin-bottom: auto;
+        padding: 36px 0;
+    }
+    .ops-lede {
+        max-width: 24ch;
+        font-size: 26px;
+        font-weight: 400;
+        line-height: 1.32;
+        letter-spacing: -.4px;
+        color: #E9F1F4;
+    }
+    .ops-sub {
+        max-width: 28ch;
+        margin-top: 10px;
+        font-size: 14.5px;
+        color: #7E949D;
+    }
+    .notice {
+        margin-top: 30px;
+        max-width: 58ch;
+        display: flex;
+        gap: 11px;
+        align-items: flex-start;
+        border-left: 2px solid rgba(232, 176, 75, .6);
+        padding: 2px 0 2px 13px;
+        font-size: 12.5px;
+        line-height: 1.55;
+        color: #9FB4BC;
+    }
+    .notice svg {
+        flex-shrink: 0;
+        margin-top: 2px;
+        color: #D9C79C;
+    }
+
+    .ops-foot {
+        border-top: 1px solid rgba(255, 255, 255, .09);
+        padding-top: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        font-family: 'IBM Plex Mono', ui-monospace, monospace;
+        font-size: 11px;
+        letter-spacing: .1em;
+        color: #71888F;
+    }
+
+    /* =============================================================================
+       RIGHT - THE SIGN IN
+       ========================================================================== */
+    .pane-form {
+        background: var(--paper);
+        display: flex;
+        flex-direction: column;
+        padding: 26px 60px 30px;
+        position: relative;
+    }
+    /* a hairline of gold where the dark pane meets paper */
+    .pane-form::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 1px;
+        background: linear-gradient(180deg, transparent, var(--gold), transparent);
+        opacity: .55;
+    }
+
+    .form-head {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+    .env {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-family: 'IBM Plex Mono', ui-monospace, monospace;
+        font-size: 10px;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+        color: var(--muted);
+        border: 1px solid var(--line);
+        border-radius: 100px;
+        padding: 4px 11px;
+        background: #fff;
+        white-space: nowrap;
+    }
+    .env i {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--ok);
+        display: block;
+        flex-shrink: 0;
+    }
+    /* anything that is not Production says so, loudly enough to stop a live order */
+    .env.env-test {
+        color: #8A5A17;
+        border-color: #E2CFA6;
+        background: #FBF3E2;
+    }
+    .env.env-test i { background: var(--gold-deep); }
+
+    .form-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        max-width: 378px;
+        width: 100%;
+    }
+    .form-body h1 {
+        font-size: 27px;
+        font-weight: 600;
+        letter-spacing: -.55px;
+        line-height: 1.15;
+        color: var(--ink);
+    }
+    .sub {
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 14px;
+        max-width: 36ch;
+    }
+
+    .fields {
+        margin-top: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    .field > label {
+        display: block;
+        font-family: 'IBM Plex Mono', ui-monospace, monospace;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: .11em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 6px;
+    }
+    .control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fff;
+        padding: 0 12px;
+        min-height: 46px;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .control:focus-within {
+        border-color: var(--gold-deep);
+        box-shadow: 0 0 0 3px rgba(232, 176, 75, .24);
+    }
+    .control > svg { flex-shrink: 0; color: var(--faint); }
+    .control input {
+        border: 0;
+        outline: none;
+        background: transparent;
+        width: 100%;
+        font: inherit;
+        font-size: 15px;
+        color: var(--text);
+    }
+    .control input::placeholder { color: #A9B4B9; }
+
+    .reveal {
+        border: 0;
+        background: transparent;
+        color: var(--faint);
+        padding: 2px;
+        display: flex;
+        border-radius: 5px;
+        flex-shrink: 0;
+    }
+    .reveal:hover { color: var(--ink); }
+    .reveal:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 2px; }
+
+    /* the most common cause of a rejected password, caught before it is spent */
+    .caps-hint {
+        margin-top: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #8A5A17;
+    }
+    .caps-hint[hidden] { display: none; }
+    .caps-hint kbd {
+        font-family: 'IBM Plex Mono', ui-monospace, monospace;
+        font-size: 10px;
+        border: 1px solid #E2CFA6;
+        background: #FBF3E2;
+        border-radius: 3px;
+        padding: 1px 4px;
+    }
+
+    .signin {
+        margin-top: 22px;
+        width: 100%;
+        border: 0;
+        border-radius: 7px;
+        padding: 14px 18px;
+        background: var(--ink);
+        color: var(--paper);
+        font-weight: 600;
+        font-size: 15px;
+        transition: background .15s, transform .1s;
+    }
+    .signin:hover  { background: var(--ink-2); }
+    .signin:active { transform: translateY(1px); }
+    .signin:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 3px; }
+
+    .helprow {
+        margin-top: 16px;
+        padding-top: 15px;
+        border-top: 1px solid var(--line);
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: var(--muted);
+    }
+    .helprow a {
+        color: var(--gold-deep);
+        text-decoration: none;
+        border-bottom: 1px solid rgba(184, 135, 31, .35);
+    }
+
+    .form-foot {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        font-size: 12px;
+        color: var(--faint);
+    }
+    .form-foot .mono {
+        font-family: 'IBM Plex Mono', ui-monospace, monospace;
+        font-size: 11px;
+        letter-spacing: .1em;
+    }
+
+    /* =============================================================================
+       NARROW SCREENS  -  the identity pane becomes a header strip
+       ========================================================================== */
+    @media (max-width: 960px) {
+        .screen { grid-template-columns: minmax(0, 1fr); }
+        .pane-ops { padding: 28px 28px 24px; }
+        .pane-ops .ops-body { padding: 26px 0; }
+        .pane-ops .ops-lede, .pane-ops .ops-sub, .pane-ops .notice { max-width: none; }
+        .pane-ops .ops-lede { font-size: 22px; }
+        .pane-form { padding: 26px 28px 32px; }
+        .pane-form::after { display: none; }
+        .form-body { max-width: none; padding: 24px 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .signin, .control { transition: none; }
+    }
+    /* sign-in error, replacing the restyled PrimeFaces p:messages */
+    .login-message {
+        margin-top: 20px;
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--bad);
+        border-radius: 7px;
+        background: #fff;
+        padding: 11px 13px;
+        color: var(--text);
+        font-size: 13.5px;
+        line-height: 1.45;
+    }
+    .login-message.warn { border-left-color: var(--gold-deep); }
+    .signin:disabled { opacity: .7; cursor: progress; }
+}

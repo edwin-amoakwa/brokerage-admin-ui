@@ -1,0 +1,40 @@
+.type-name { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.text-center { text-align: center; }
+.tiny { font-size: 10.5px; }
+.nowrap { white-space: nowrap; }
+.detail { max-width: 280px; }
+.note { margin: 14px 0 0; }
+.filter-bar .grow { flex: 1; min-width: 220px; }
+p-tab i { margin-right: 6px; }
+
+.tokens { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 16px; }
+.token {
+  border: 1px solid #d8e2dd; background: #f3f7f5; color: var(--app-brand); border-radius: 999px; padding: 3px 10px;
+  font: 12px ui-monospace, monospace; cursor: pointer;
+  &:hover { background: #e6f0eb; }
+}
+.field-head { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; .field-label { margin: 0 0 4px; } }
+
+.preview { border: 1px solid var(--app-border); border-radius: 10px; margin-bottom: 14px; overflow: hidden; }
+.preview.email .pv-head { background: #0b1f2a; color: #fff; padding: 10px 14px; font-weight: 600; font-size: 13px; }
+.preview.email .pv-body { padding: 12px 14px; font-size: 13px; white-space: pre-wrap; max-height: 260px; overflow: auto; }
+.preview.sms, .preview.wa { padding: 10px 12px; background: #f6f8f7; }
+.pv-label { font-size: 11px; color: var(--app-muted); margin-bottom: 6px; }
+.bubble { background: #fff; border-radius: 12px 12px 12px 4px; padding: 9px 12px; font-size: 13px; white-space: pre-wrap; box-shadow: 0 1px 1px rgba(0,0,0,.06); }
+.bubble.green { background: #dcf8c6; }
+
+.message-text { white-space: pre-wrap; background: #f6f8f7; border-radius: 8px; padding: 12px 14px; font-size: 13px; margin-bottom: 10px; }
+
+.ch-status {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px;
+  i { font-size: 13px; }
+  &.st-SENT { background: #e6f4ec; color: #1c7c46; }
+  &.st-PENDING { background: #fff4de; color: #9a6200; }
+  &.st-FAILED { background: #fdeaea; color: #b42318; }
+  &.st-CANCELLED { background: #eef0f2; color: #5b6670; }
+  &.st-NONE { color: #b8c0c6; padding: 3px 0; }
+}
+.channel-block { border: 1px solid var(--app-border); border-radius: 10px; padding: 12px 14px; margin-top: 14px; }
+.channel-head { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; .grow { flex: 1; } }
+.channel-name { font-weight: 600; i { margin-right: 4px; } }
+.subject { font-weight: 600; font-size: 13px; margin-bottom: 6px; }

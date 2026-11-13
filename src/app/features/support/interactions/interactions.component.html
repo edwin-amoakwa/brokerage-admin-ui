@@ -1,0 +1,82 @@
+<app-page-header title="Client Contact Log" subtitle="Calls, emails, meetings and visits with clients">
+  <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="reload()" />
+  <p-button label="Record contact" icon="pi pi-plus" (onClick)="create()" />
+</app-page-header>
+
+<div class="card">
+  <div class="filter-bar">
+    <div class="field"><label class="field-label">From</label><input type="date" pInputText [(ngModel)]="fromDate" /></div>
+    <div class="field"><label class="field-label">To</label><input type="date" pInputText [(ngModel)]="toDate" /></div>
+    <div class="field">
+      <label class="field-label">Kind</label>
+      <p-select [(ngModel)]="filterType" [options]="types" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Any" appendTo="body" />
+    </div>
+    <div class="field">
+      <label class="field-label">Search</label>
+      <input pInputText [(ngModel)]="keyword" placeholder="Client or subject" (keyup.enter)="reload()" />
+    </div>
+    <p-button label="Apply" icon="pi pi-filter" (onClick)="reload()" />
+    <span class="muted" style="margin-left: auto">{{ total }} contact(s)</span>
+  </div>
+  <p-table [value]="rows" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="15" [totalRecords]="total" [loading]="loading"
+           size="small" [first]="first" [rowsPerPageOptions]="[15, 30, 60]">
+    <ng-template #header>
+      <tr><th>When</th><th>Client</th><th>Kind</th><th>Subject</th><th>Case</th><th>Recorded by</th><th class="actions-col"></th></tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr>
+        <td>{{ row.occurredAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+        <td>{{ row.investorName }}<div class="small muted">{{ row.investorCode }}</div></td>
+        <td>{{ row.interactionTypeName }}<div class="small muted">{{ row.directionName }}</div></td>
+        <td>{{ row.subject }}<div class="small muted">{{ row.summary }}</div></td>
+        <td>{{ row.supportCaseReference || '—' }}</td>
+        <td>{{ row.recordedByName }}</td>
+        <td class="actions-col">
+          <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="edit(row)" ariaLabel="Edit" />
+          <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="remove(row)" ariaLabel="Delete" />
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage><tr><td colspan="7">No contacts in this window.</td></tr></ng-template>
+  </p-table>
+</div>
+
+<p-dialog [header]="record?.id ? 'Edit contact' : 'Record contact'" [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '720px', maxWidth: '96vw' }" appendTo="body">
+  @if (record) {
+    <div class="row g-3">
+      <div class="col-md-12">
+        <label class="field-label">Client<span class="req">*</span></label>
+        <app-entity-picker kind="investor" [value]="investor" (selected)="pickInvestor($event)" placeholder="Find the client" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Kind<span class="req">*</span></label>
+        <p-select [(ngModel)]="record.interactionType" [options]="types" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Direction</label>
+        <p-select [(ngModel)]="record.direction" [options]="directions" optionLabel="itemName" optionValue="id" [showClear]="true" class="w-full" appendTo="body" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">When<span class="req">*</span></label>
+        <input type="datetime-local" pInputText [(ngModel)]="record.occurredAt" class="w-full" />
+      </div>
+      <div class="col-md-12">
+        <label class="field-label">Linked case</label>
+        <p-select [(ngModel)]="record.supportCaseId" [options]="caseOptions" optionLabel="itemName" optionValue="id" [showClear]="true" [filter]="caseOptions.length > 8"
+                  placeholder="Not linked to a case" class="w-full" appendTo="body" [disabled]="!investor" />
+      </div>
+      <div class="col-md-12">
+        <label class="field-label">Subject<span class="req">*</span></label>
+        <input pInputText [(ngModel)]="record.subject" maxlength="250" class="w-full" />
+      </div>
+      <div class="col-md-12">
+        <label class="field-label">Summary</label>
+        <textarea pTextarea [(ngModel)]="record.summary" rows="4" class="w-full"></textarea>
+      </div>
+    </div>
+  }
+  <ng-template #footer>
+    <p-button label="Close" severity="secondary" [outlined]="true" (onClick)="dialogVisible = false" />
+    <p-button label="Save" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+  </ng-template>
+</p-dialog>

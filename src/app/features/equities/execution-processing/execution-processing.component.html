@@ -1,0 +1,144 @@
+<app-page-header title="Execution Processing" subtitle="Consolidate the day's executions into one trade per order">
+  <input type="date" pInputText [(ngModel)]="valueDate" />
+  <p-button label="Load" icon="pi pi-refresh" (onClick)="load()" />
+</app-page-header>
+
+<div class="card">
+  <p-stepper [value]="step()" [linear]="false">
+    <p-step-list>
+      <p-step [value]="1">Book or upload executions</p-step>
+      <p-step [value]="2">Review by order</p-step>
+      <p-step [value]="3">Process into trades</p-step>
+      <p-step [value]="4">Report</p-step>
+    </p-step-list>
+  </p-stepper>
+</div>
+
+<app-stat-tiles [tiles]="tiles" />
+
+@if (summary.unlinkedCount > 0) {
+  <p-message severity="warn" styleClass="mb-3">
+    {{ summary.unlinkedCount }} execution(s) on this day have no order and are skipped by processing.
+  </p-message>
+}
+
+<div class="row g-3">
+  <div class="col-xl-9">
+    <div class="card">
+      <div class="table-toolbar">
+        <div class="card-title">Executions for {{ day.valueDate | date: 'dd/MM/yyyy' }} by order</div>
+        <input pInputText [(ngModel)]="search" placeholder="Order no, account or stock" />
+        <span class="muted"></span>
+        <p-button label="Process into Trades" icon="pi pi-cog" [disabled]="!groups.length" [loading]="busy" (onClick)="processDay()" />
+      </div>
+      <p-table [value]="filteredGroups()" dataKey="orderId" size="small" [paginator]="groups.length > 25" [rows]="25">
+        <ng-template #header>
+          <tr><th style="width: 2.5rem"></th><th>Order</th><th>Account</th><th>Stock</th><th>Side</th><th class="text-right">Fills</th>
+            <th class="text-right">Quantity</th><th class="text-right">Avg Price</th><th class="text-right">Cost</th><th>Status</th></tr>
+        </ng-template>
+        <ng-template #body let-g let-expanded="expanded">
+          <tr>
+            <td><p-button [pRowToggler]="g" [text]="true" size="small" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" /></td>
+            <td>{{ g.orderNo }}<div class="muted small">{{ g.orderTypeName }} · {{ g.orderQuantity | number: '1.0-0' }} ordered</div></td>
+            <td>{{ g.accountName }}<div class="muted small">{{ g.accountCode }}</div></td>
+            <td>{{ g.stockSymbol }}</td>
+            <td><p-tag [value]="g.buySellName" [severity]="side(g.buySell)" /></td>
+            <td class="text-right">{{ g.fillCount }}</td>
+            <td class="text-right">{{ g.quantity | number: '1.0-0' }}</td>
+            <td class="text-right">{{ g.averagePrice | number: '1.2-4' }}</td>
+            <td class="text-right">{{ g.cost | number: '1.2-2' }}</td>
+            <td><p-tag [value]="g.statusLabel" [severity]="g.processed ? 'success' : 'warn'" /></td>
+          </tr>
+        </ng-template>
+        <ng-template #expandedrow let-g>
+          <tr>
+            <td colspan="10">
+              <p-table [value]="g.executions" size="small">
+                <ng-template #header>
+                  <tr><th>Execution ID</th><th>Type</th><th class="text-right">Quantity</th><th class="text-right">Price</th>
+                    <th class="text-right">Cost</th><th>Status</th><th>Message</th></tr>
+                </ng-template>
+                <ng-template #body let-e>
+                  <tr>
+                    <td>{{ e.executionId }}</td>
+                    <td>{{ e.executionTypeName }}</td>
+                    <td class="text-right">{{ e.quantity | number: '1.0-0' }}</td>
+                    <td class="text-right">{{ e.executionPrice | number: '1.2-4' }}</td>
+                    <td class="text-right">{{ e.executionCost | number: '1.2-2' }}</td>
+                    <td>{{ e.processed ? 'Processed' : 'Not processed' }}</td>
+                    <td>{{ e.message }}</td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template #footer>
+          <tr><td colspan="5">{{ summary.orderCount }} order(s)</td><td class="text-right">{{ summary.executionCount }}</td>
+            <td class="text-right">{{ summary.totalQuantity | number: '1.0-0' }}</td><td></td>
+            <td class="text-right">{{ summary.executedValue | number: '1.2-2' }}</td><td></td></tr>
+        </ng-template>
+        <ng-template #emptymessage><tr><td colspan="10">No executions on this day.</td></tr></ng-template>
+      </p-table>
+    </div>
+
+    <div class="card">
+      <div class="table-toolbar">
+        <div class="card-title">Trades for {{ day.valueDate | date: 'dd/MM/yyyy' }}</div>
+        <span class="muted"></span>
+        <a routerLink="/equities/trades">Trade records</a>
+        <p-button label="Trade & Settlement Report" icon="pi pi-print" severity="secondary" [outlined]="true" (onClick)="print()" />
+      </div>
+      <p-table [value]="trades" size="small">
+        <ng-template #header>
+          <tr><th>Order</th><th>Account</th><th>Stock</th><th>Side</th><th class="text-right">Quantity</th><th class="text-right">Trade Price</th>
+            <th class="text-right">Consideration</th><th class="text-right">Charges</th><th class="text-right">Net</th></tr>
+        </ng-template>
+        <ng-template #body let-t>
+          <tr>
+            <td>{{ t.orderNo }}</td>
+            <td>{{ t.accountName }}</td>
+            <td>{{ t.stockSymbol }}</td>
+            <td><p-tag [value]="t.buySellName" [severity]="side(t.buySell)" /></td>
+            <td class="text-right">{{ t.quantity | number: '1.0-0' }}</td>
+            <td class="text-right">{{ t.tradePrice | number: '1.2-4' }}</td>
+            <td class="text-right">{{ t.consideration | number: '1.2-2' }}</td>
+            <td class="text-right">{{ t.totalCharges | number: '1.2-2' }}</td>
+            <td class="text-right">{{ t.netConsideration | number: '1.2-2' }}</td>
+          </tr>
+        </ng-template>
+        <ng-template #footer>
+          <tr><td colspan="4">{{ summary.tradeCount }} trade(s)</td><td class="text-right">{{ summary.tradesQuantity | number: '1.0-0' }}</td><td></td>
+            <td class="text-right">{{ summary.tradesConsideration | number: '1.2-2' }}</td>
+            <td class="text-right">{{ summary.tradesCharges | number: '1.2-2' }}</td>
+            <td class="text-right">{{ summary.tradesNet | number: '1.2-2' }}</td></tr>
+        </ng-template>
+        <ng-template #emptymessage><tr><td colspan="9">No trades booked on this day yet.</td></tr></ng-template>
+      </p-table>
+    </div>
+  </div>
+
+  <div class="col-xl-3">
+    <div class="card">
+      <div class="card-title">Awaiting Processing</div>
+      <p-table [value]="pendingDays" size="small">
+        <ng-template #header><tr><th>Date</th><th class="text-right">Fills</th><th class="text-right">Orders</th></tr></ng-template>
+        <ng-template #body let-d>
+          <tr>
+            <td><a href="javascript:void(0)" (click)="selectDay(d)">{{ d.valueDate | date: 'dd/MM/yyyy' }}</a></td>
+            <td class="text-right">{{ d.fills }}</td>
+            <td class="text-right">{{ d.orders }}</td>
+          </tr>
+        </ng-template>
+        <ng-template #footer><tr><td>Total</td><td class="text-right">{{ pendingFills() }}</td><td></td></tr></ng-template>
+        <ng-template #emptymessage><tr><td colspan="3">Nothing awaiting processing.</td></tr></ng-template>
+      </p-table>
+      <div class="form-actions" style="flex-direction: column; align-items: stretch">
+        <a routerLink="/equities/execution-processing/upload">Execution Uploads</a>
+        <p-button label="Process All into Trades" icon="pi pi-cog" severity="warn" [disabled]="!pendingDays.length" [loading]="busy" (onClick)="processAll()" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-report-viewer [reportData]="reportData" />

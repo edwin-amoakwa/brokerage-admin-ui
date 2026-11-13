@@ -1,0 +1,93 @@
+<app-page-header title="Execution Processing" subtitle="Roll the day's fixed income fills into authorised trades">
+  <p-button label="Upload executions" icon="pi pi-upload" severity="secondary" [outlined]="true" routerLink="/fixed-income/execution-processing/upload" />
+</app-page-header>
+
+<div class="row g-3">
+  <div class="col-lg-9">
+    <div class="card">
+      <div class="filter-bar">
+        <div class="field">
+          <label class="field-label">Value date</label>
+          <input type="date" pInputText [(ngModel)]="valueDate" />
+        </div>
+        <p-button label="Load" icon="pi pi-refresh" (onClick)="load()" [loading]="loading" />
+        <p-button label="Process into trades" icon="pi pi-cog" severity="success" (onClick)="process()" [loading]="processing" />
+      </div>
+
+      <div class="section-title">Executions on {{ valueDate | date: 'dd/MM/yyyy' }}</div>
+      <p-table [value]="executions" size="small" [paginator]="executions.length > 10" [rows]="10" dataKey="id">
+        <ng-template #header>
+          <tr>
+            <th>Date</th><th>Execution ID</th><th>Order</th><th>Type</th><th>Account</th><th>Security</th>
+            <th class="text-right">Face value</th><th class="text-right">Cost</th><th>Status</th><th class="actions-col"></th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-row>
+          <tr>
+            <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+            <td>{{ row.executionId }}</td>
+            <td>{{ row.orderNo }}</td>
+            <td>{{ row.executionType }}</td>
+            <td>{{ row.accountName }}</td>
+            <td>{{ row.fixedIncomeName }}</td>
+            <td class="text-right">{{ row.faceValue | number: '1.2-2' }}</td>
+            <td class="text-right">{{ row.cost | number: '1.2-2' }}</td>
+            <td><p-tag [value]="row.transactionStatusName || 'Not Processed'" [severity]="row.transactionStatus === 'PROCESSED' ? 'success' : 'warn'" /></td>
+            <td class="actions-col">
+              @if (canManageOrders) {
+                <p-button label="Edit" icon="pi pi-pencil" size="small" [text]="true" (onClick)="openOrder(row)" />
+              }
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template #emptymessage><tr><td colspan="10">No executions on this date.</td></tr></ng-template>
+      </p-table>
+
+      <div class="section-title">Trades</div>
+      <p-table [value]="trades" size="small" [paginator]="trades.length > 10" [rows]="10" dataKey="id" [scrollable]="true">
+        <ng-template #header>
+          <tr>
+            <th>Trade order</th><th>Instrument</th><th>Market</th><th>Asset sub class</th>
+            <th class="text-right">Face value</th><th class="text-right">Price</th><th class="text-right">Cost</th>
+            <th class="text-right">Market value</th><th class="text-right">Maturity value</th><th class="text-right">Rate %</th>
+            <th class="text-right">YTM %</th><th>Maturity</th><th>Valuation date</th><th>Status</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-row>
+          <tr>
+            <td>{{ row.orderNo }}</td>
+            <td>{{ row.fixedIncomeName }}</td>
+            <td>{{ row.market }}</td>
+            <td>{{ row.assetSubClassName }}</td>
+            <td class="text-right">{{ row.faceValue | number: '1.2-2' }}</td>
+            <td class="text-right">{{ row.price | number: '1.2-4' }}</td>
+            <td class="text-right">{{ row.cost | number: '1.2-2' }}</td>
+            <td class="text-right">{{ row.marketValue | number: '1.2-2' }}</td>
+            <td class="text-right">{{ row.maturityValue | number: '1.2-2' }}</td>
+            <td class="text-right">{{ row.rate | number: '1.2-4' }}</td>
+            <td class="text-right">{{ row.ytm | number: '1.2-4' }}</td>
+            <td>{{ row.maturityDate | date: 'dd/MM/yyyy' }}</td>
+            <td>{{ row.valuationDate | date: 'dd/MM/yyyy' }}</td>
+            <td><p-tag [value]="row.authorised ? 'Authorised' : 'Pending'" [severity]="row.authorised ? 'success' : 'warn'" /></td>
+          </tr>
+        </ng-template>
+        <ng-template #emptymessage><tr><td colspan="14">No trades for this date yet.</td></tr></ng-template>
+      </p-table>
+    </div>
+  </div>
+  <div class="col-lg-3">
+    <div class="card">
+      <div class="card-title">Unprocessed fills</div>
+      <p-table [value]="unprocessed" size="small">
+        <ng-template #header><tr><th>Date</th><th class="text-right">Fills</th></tr></ng-template>
+        <ng-template #body let-row>
+          <tr class="clickable" (click)="valueDate = row.valueDate; load()">
+            <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+            <td class="text-right">{{ row.count }}</td>
+          </tr>
+        </ng-template>
+        <ng-template #emptymessage><tr><td colspan="2">Nothing waiting.</td></tr></ng-template>
+      </p-table>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,116 @@
+<app-page-header title="Reports" subtitle="Run a report with its own filters" />
+
+<div class="row g-3">
+  <div class="col-lg-3">
+    <div class="card">
+      <div class="card-title">Available reports</div>
+      @for (r of catalog; track r.key) {
+        <div class="clickable report-item" [class.active]="selected === r.key" (click)="selected = r.key">
+          <strong>{{ r.title }}</strong>
+          <div class="muted small">{{ r.description }}</div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="col-lg-9">
+    <div class="card">
+      @switch (selected) {
+        @case ('running') {
+          <div class="card-title">Running Investment</div>
+          <p class="muted small">Authorised fixed-income positions held and not matured as at the date. Days run and accrued interest are worked out to that date.</p>
+          <div class="filter-bar">
+            <div class="field">
+              <label class="field-label">As at<span class="req">*</span></label>
+              <input type="date" pInputText [(ngModel)]="asAtDate" />
+            </div>
+            <div class="field" style="min-width: 300px">
+              <label class="field-label">Account (optional)</label>
+              <app-entity-picker kind="account" [value]="runningAccount" (selected)="runningAccount = $event" buttonLabel="Find" placeholder="All accounts" />
+            </div>
+            <p-button label="Preview" icon="pi pi-eye" severity="secondary" [outlined]="true" [loading]="loading" (onClick)="previewRunning()" />
+            <p-button label="Print" icon="pi pi-print" [loading]="printing" (onClick)="printRunning()" />
+          </div>
+          @if (running) {
+            <app-stat-tiles [tiles]="runningTiles" />
+            <p-table [value]="running.rows" [paginator]="true" [rows]="20" size="small" dataKey="id">
+              <ng-template #header>
+                <tr>
+                  <th>Account</th><th>Instrument</th><th>Issuer</th><th>Value date</th><th>Maturity</th>
+                  <th class="text-right">Rate %</th><th class="text-right">Face value</th><th class="text-right">Cost</th>
+                  <th class="text-right">Days run</th><th class="text-right">Accrued int.</th><th class="text-right">Market value</th>
+                </tr>
+              </ng-template>
+              <ng-template #body let-row>
+                <tr>
+                  <td>{{ row.accountName }}</td>
+                  <td>{{ row.instrument }}</td>
+                  <td>{{ row.issuer }}</td>
+                  <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+                  <td>{{ row.maturityDate | date: 'dd/MM/yyyy' }}</td>
+                  <td class="text-right">{{ row.interestRate | number: '1.2-4' }}</td>
+                  <td class="text-right">{{ row.faceValue | number: '1.2-2' }}</td>
+                  <td class="text-right">{{ row.cost | number: '1.2-2' }}</td>
+                  <td class="text-right">{{ row.daysRun }}</td>
+                  <td class="text-right">{{ row.accruedInterest | number: '1.2-2' }}</td>
+                  <td class="text-right">{{ row.marketValue | number: '1.2-2' }}</td>
+                </tr>
+              </ng-template>
+              <ng-template #emptymessage><tr><td colspan="11">No running investments as at this date.</td></tr></ng-template>
+            </p-table>
+          }
+        }
+        @case ('statement') {
+          <div class="card-title">Account Statement</div>
+          <p class="muted small">All ledger movements for an account with opening, running and closing balances. Leave the dates empty for the whole history.</p>
+          <div class="filter-bar">
+            <div class="field" style="min-width: 300px">
+              <label class="field-label">Account<span class="req">*</span></label>
+              <app-entity-picker kind="account" [value]="account" (selected)="account = $event" buttonLabel="Find" />
+            </div>
+            <div class="field"><label class="field-label">From</label><input type="date" pInputText [(ngModel)]="fromDate" /></div>
+            <div class="field"><label class="field-label">To</label><input type="date" pInputText [(ngModel)]="toDate" /></div>
+            <p-button label="Print" icon="pi pi-print" [loading]="printing" (onClick)="print('statement')" />
+          </div>
+        }
+        @case ('cash') {
+          <div class="card-title">Cash Transaction Report</div>
+          <p class="muted small">Cash deposits, withdrawals and transfers for an account.</p>
+          <div class="filter-bar">
+            <div class="field" style="min-width: 300px">
+              <label class="field-label">Account<span class="req">*</span></label>
+              <app-entity-picker kind="account" [value]="account" (selected)="account = $event" buttonLabel="Find" />
+            </div>
+            <div class="field">
+              <label class="field-label">Portfolio</label>
+              <p-select [(ngModel)]="portfolio" [options]="portfolios" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="All" appendTo="body" />
+            </div>
+            <div class="field"><label class="field-label">From</label><input type="date" pInputText [(ngModel)]="fromDate" /></div>
+            <div class="field"><label class="field-label">To</label><input type="date" pInputText [(ngModel)]="toDate" /></div>
+            <p-button label="Print" icon="pi pi-print" [loading]="printing" (onClick)="print('cash')" />
+          </div>
+        }
+        @case ('fixedIncome') {
+          <div class="card-title">Fixed Income Transaction Report</div>
+          <p class="muted small">Fixed-income transactions by value date. Choose an account or a date range.</p>
+          <div class="filter-bar">
+            <div class="field" style="min-width: 300px">
+              <label class="field-label">Account (optional)</label>
+              <app-entity-picker kind="account" [value]="account" (selected)="account = $event" buttonLabel="Find" placeholder="All accounts" />
+            </div>
+            <div class="field"><label class="field-label">From</label><input type="date" pInputText [(ngModel)]="fromDate" /></div>
+            <div class="field"><label class="field-label">To</label><input type="date" pInputText [(ngModel)]="toDate" /></div>
+            <p-button label="Print" icon="pi pi-print" [loading]="printing" (onClick)="print('fixedIncome')" />
+          </div>
+        }
+      }
+      @if (current.route && session.can(current.permission)) {
+        <p class="small" style="margin-top: 12px">
+          <a [routerLink]="current.route">Open the {{ current.screen }} screen</a>
+        </p>
+      }
+    </div>
+  </div>
+</div>
+
+<app-report-viewer [reportData]="reportData" />

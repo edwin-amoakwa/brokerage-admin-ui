@@ -1,0 +1,98 @@
+<app-page-header title="Simple Transactions" subtitle="Fixed income placements without a security record" />
+
+<div class="card">
+  <div class="filter-bar">
+    <div class="field" style="min-width: 320px">
+      <label class="field-label">Account</label>
+      <app-entity-picker kind="account" [value]="account" (selected)="selectAccount($event)" buttonLabel="Find" placeholder="Select an account" />
+    </div>
+    <div class="field">
+      <label class="field-label">From</label>
+      <input type="date" pInputText [(ngModel)]="fromDate" />
+    </div>
+    <div class="field">
+      <label class="field-label">To</label>
+      <input type="date" pInputText [(ngModel)]="toDate" />
+    </div>
+    <p-button label="Load" icon="pi pi-refresh" severity="secondary" [outlined]="true" [disabled]="!account" (onClick)="load()" />
+  </div>
+</div>
+
+@if (account) {
+  <div class="card">
+    <div class="card-title">{{ trade?.id ? 'Edit transaction' : 'New transaction' }}</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="field-label">Account</label>
+        <input pInputText [value]="account.displayName" class="w-full" disabled />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Asset type<span class="req">*</span></label>
+        <p-select [(ngModel)]="trade.assetSubClass" [options]="subClasses" optionLabel="itemName" optionValue="id" [filter]="true" class="w-full" appendTo="body" />
+      </div>
+      <div class="col-md-4 check-field">
+        <p-checkbox [(ngModel)]="trade.authorised" [binary]="true" inputId="fiAuth" />
+        <label for="fiAuth">Authorised</label>
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Amount<span class="req">*</span></label>
+        <p-inputnumber [(ngModel)]="trade.cost" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" class="w-full" inputStyleClass="w-full" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Interest rate %</label>
+        <p-inputnumber [(ngModel)]="trade.interestRate" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="4" class="w-full" inputStyleClass="w-full" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Start date<span class="req">*</span></label>
+        <input type="date" pInputText [(ngModel)]="trade.valueDate" (ngModelChange)="updateMaturity()" class="w-full" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Tenor<span class="req">*</span></label>
+        <p-select [(ngModel)]="trade.tenor" [options]="tenors" optionLabel="itemName" optionValue="id" (onChange)="updateMaturity()" class="w-full" appendTo="body" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Maturity date</label>
+        <input type="date" pInputText [(ngModel)]="trade.maturityDate" class="w-full" />
+      </div>
+    </div>
+    <div class="form-actions">
+      <p-button label="Clear" severity="secondary" [outlined]="true" (onClick)="clearTrade()" />
+      <p-button label="Save" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-toolbar">
+      <span class="card-title">Transactions</span>
+      <p-button label="Print" icon="pi pi-print" severity="secondary" [outlined]="true" size="small" [loading]="printing" (onClick)="print()" />
+      <span class="muted">{{ rows.length }} transaction(s)</span>
+    </div>
+    <p-table [value]="rows" size="small" [paginator]="rows.length > 10" [rows]="10" dataKey="id">
+      <ng-template #header>
+        <tr>
+          <th>Type</th><th>Tenor</th><th>Trans date</th><th class="text-right">Rate %</th><th class="text-right">Face value</th>
+          <th class="text-right">Maturity value</th><th>Maturity date</th><th>Status</th><th class="actions-col"></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row>
+        <tr>
+          <td>{{ row.assetSubClassName }}</td>
+          <td>{{ row.tenorName }}</td>
+          <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+          <td class="text-right">{{ row.interestRate | number: '1.2-4' }}</td>
+          <td class="text-right">{{ row.faceValue | number: '1.2-2' }}</td>
+          <td class="text-right">{{ row.maturityValue | number: '1.2-2' }}</td>
+          <td>{{ row.maturityDate | date: 'dd/MM/yyyy' }}</td>
+          <td><p-tag [value]="row.authorised ? 'Authorised' : 'Pending'" [severity]="row.authorised ? 'success' : 'warn'" /></td>
+          <td class="actions-col">
+            <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="edit(row)" ariaLabel="Edit" />
+            <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="remove(row)" [disabled]="row.authorised" ariaLabel="Delete" />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="9">No simple transactions for this account.</td></tr></ng-template>
+    </p-table>
+  </div>
+}
+
+<app-report-viewer [reportData]="reportData" />

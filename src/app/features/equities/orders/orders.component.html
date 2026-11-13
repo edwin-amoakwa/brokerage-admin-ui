@@ -1,0 +1,203 @@
+@if (!ticket) {
+  <app-page-header title="Orders" subtitle="Equity orders and the order ticket">
+    <p-button label="Print" icon="pi pi-print" severity="secondary" [outlined]="true" (onClick)="print()" />
+    <p-button label="Add new Trade Order" icon="pi pi-plus" (onClick)="newOrder()" />
+  </app-page-header>
+
+  <app-stat-tiles [tiles]="tiles" />
+
+  <div class="card">
+    <div class="filter-bar">
+      <div class="field">
+        <label class="field-label">Buy/Sell</label>
+        <p-select [(ngModel)]="filter.buySell" [options]="sides" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="All" appendTo="body" />
+      </div>
+      <div class="field">
+        <label class="field-label">Order status</label>
+        <p-select [(ngModel)]="filter.orderStatus" [options]="statuses" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="All" appendTo="body" />
+      </div>
+      <div class="field">
+        <label class="field-label">From</label>
+        <input type="date" pInputText [(ngModel)]="filter.fromDate" />
+      </div>
+      <div class="field">
+        <label class="field-label">To</label>
+        <input type="date" pInputText [(ngModel)]="filter.toDate" />
+      </div>
+      <div class="field">
+        <label class="field-label">Search</label>
+        <input pInputText [(ngModel)]="filter.keyword" placeholder="Order no, account or stock" (keyup.enter)="reload()" />
+      </div>
+      <p-button label="Search" icon="pi pi-search" (onClick)="reload()" />
+    </div>
+
+    <p-table [value]="rows" dataKey="id" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="20" [first]="first"
+             [totalRecords]="total" [loading]="loading" size="small">
+      <ng-template #header>
+        <tr>
+          <th style="width: 2.5rem"></th><th>Date</th><th>Order No</th><th>Side</th><th>Account</th><th>Stock</th>
+          <th class="text-right">Order Qty</th><th class="text-right">Order Price</th><th style="width: 9rem">Filled</th>
+          <th class="text-right">Consideration</th><th>Status</th><th class="actions-col"></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row let-expanded="expanded">
+        <tr>
+          <td><p-button [pRowToggler]="row" [text]="true" size="small" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" /></td>
+          <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ row.orderNo }}</td>
+          <td><p-tag [value]="row.buySellName" [severity]="side(row.buySell)" /></td>
+          <td>{{ row.accountName }}<div class="muted small">{{ row.accountCode }}</div></td>
+          <td>{{ row.stockSymbol }}</td>
+          <td class="text-right">{{ row.orderQuantity | number: '1.0-0' }}</td>
+          <td class="text-right">{{ row.orderPrice | number: '1.2-4' }}</td>
+          <td><p-progressbar [value]="row.fillPercent" [showValue]="true" [style]="{ height: '14px' }" /></td>
+          <td class="text-right">{{ row.consideration | number: '1.2-2' }}</td>
+          <td><p-tag [value]="row.orderStatusName" [severity]="severity(row.orderStatus)" /></td>
+          <td class="actions-col">
+            <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="edit(row)" ariaLabel="Edit" />
+            <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="remove(row)" ariaLabel="Delete" />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #expandedrow let-row>
+        <tr>
+          <td colspan="12">
+            <div class="detail-grid">
+              <div><div class="label">Order type</div><div class="value">{{ row.orderTypeName }} {{ row.orderTypeDescription }}</div></div>
+              <div><div class="label">Time in force</div><div class="value">{{ row.timeInForceName || '-' }}</div></div>
+              <div><div class="label">Expiry date</div><div class="value">{{ (row.expiryDate | date: 'dd/MM/yyyy') || '-' }}</div></div>
+              <div><div class="label">Order quantity</div><div class="value">{{ row.orderQuantity | number: '1.0-0' }}</div></div>
+              <div><div class="label">Qty executed</div><div class="value">{{ row.qtyExecuted | number: '1.0-0' }}</div></div>
+              <div><div class="label">Qty left</div><div class="value">{{ row.qtyLeft | number: '1.0-0' }}</div></div>
+              <div><div class="label">Consideration</div><div class="value">{{ row.consideration | number: '1.2-2' }}</div></div>
+              <div><div class="label">Estimated execution cost</div><div class="value">{{ row.estimatedExecutionCost | number: '1.2-2' }}</div></div>
+              <div><div class="label">Actual executed cost</div><div class="value">{{ row.actualExecutedCost | number: '1.2-2' }}</div></div>
+              <div><div class="label">Estimated commission</div><div class="value">{{ row.estimatedComms | number: '1.2-2' }}</div></div>
+              <div><div class="label">Regulatory fees</div><div class="value">{{ row.regulatoryFees | number: '1.2-2' }}</div></div>
+              <div><div class="label">Authorised date</div><div class="value">{{ (row.authorisedDate | date: 'dd/MM/yyyy') || '-' }}</div></div>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #footer>
+        <tr>
+          <td colspan="6">Totals</td>
+          <td class="text-right">{{ summary.totalQuantity | number: '1.0-0' }}</td>
+          <td></td>
+          <td>{{ summary.totalExecuted | number: '1.0-0' }} executed</td>
+          <td class="text-right">{{ summary.totalConsideration | number: '1.2-2' }}</td>
+          <td colspan="2"></td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="12">No orders found.</td></tr></ng-template>
+    </p-table>
+  </div>
+} @else {
+  <app-page-header [title]="ticket.id ? 'Order ' + (ticket.orderNo || '') : 'New Order'" subtitle="Pick the account, enter the order, confirm it, then save">
+    @if (ticket.orderStatusName) {
+      <p-tag [value]="ticket.orderStatusName" [severity]="severity(ticket.orderStatus)" />
+    }
+    @if (ticket.working && ticket.orderNo) {
+      <p-button label="Cancel Order" icon="pi pi-ban" severity="danger" [outlined]="true" (onClick)="cancelOrder()" />
+    }
+    <p-button label="Close" icon="pi pi-times" severity="secondary" [outlined]="true" (onClick)="close()" />
+  </app-page-header>
+
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-title">1. Account</div>
+        <app-entity-picker kind="account" [value]="account" (selected)="selectAccount($event)" />
+        @if (account) {
+          <div class="detail-grid" style="margin-top: 12px">
+            <div><div class="label">Account</div><div class="value">{{ account.accountName }}</div></div>
+            <div><div class="label">Account code</div><div class="value">{{ account.accountCode }}</div></div>
+            <div><div class="label">Exchange</div><div class="value">{{ account.stockExchangeName || ticket.exchangeCode || '-' }}</div></div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-title">2. Order</div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="field-label">Side<span class="req">*</span></label>
+            <p-select [(ngModel)]="ticket.buySell" [options]="sides" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" (onChange)="unconfirm()" />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">Date<span class="req">*</span></label>
+            <input type="date" pInputText [(ngModel)]="ticket.valueDate" class="w-full" />
+          </div>
+          <div class="col-md-12">
+            <label class="field-label">Stock<span class="req">*</span></label>
+            <p-select [(ngModel)]="ticket.stockId" [options]="stocks" optionLabel="itemName" optionValue="id" [filter]="true" class="w-full" appendTo="body" (onChange)="unconfirm()" />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">Time in force</label>
+            <p-select [(ngModel)]="ticket.timeInForce" [options]="timeInForces" optionLabel="itemName" optionValue="id" [showClear]="true" class="w-full" appendTo="body" />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">Order type<span class="req">*</span></label>
+            <p-select [(ngModel)]="ticket.orderType" [options]="orderTypes" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" (onChange)="unconfirm()" />
+          </div>
+          @if (ticket.orderType === 'OTHER') {
+            <div class="col-md-12">
+              <label class="field-label">Specify order type<span class="req">*</span></label>
+              <textarea pTextarea [(ngModel)]="ticket.orderTypeDescription" rows="2" class="w-full"></textarea>
+            </div>
+          }
+          <div class="col-md-6">
+            <label class="field-label">Order quantity<span class="req">*</span></label>
+            <p-inputnumber [(ngModel)]="ticket.orderQuantity" [maxFractionDigits]="0" class="w-full" inputStyleClass="w-full" (onInput)="unconfirm()" />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">Order price</label>
+            <p-inputnumber [(ngModel)]="ticket.orderPrice" [minFractionDigits]="2" [maxFractionDigits]="4" class="w-full" inputStyleClass="w-full" (onInput)="unconfirm()" />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">Expiry date</label>
+            <input type="date" pInputText [(ngModel)]="ticket.expiryDate" class="w-full" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <p-button label="Confirm Order" icon="pi pi-check-circle" [loading]="pricing" (onClick)="confirm()" />
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-title">3. Confirmation</div>
+        @if (priced) {
+          <div class="detail-grid">
+            <div><div class="label">Consideration</div><div class="value">{{ priced.consideration | number: '1.2-2' }}</div></div>
+            <div><div class="label">Broker commission</div><div class="value">{{ priced.estimatedComms | number: '1.2-2' }}</div></div>
+            <div><div class="label">Regulatory charges</div><div class="value">{{ priced.regulatoryFees | number: '1.2-2' }}</div></div>
+            <div>
+              <div class="label">{{ ticket.buySell === 'SELL' ? 'Estimated proceeds to the account' : 'Estimated cost to the account' }}</div>
+              <div class="value">{{ priced.netConsideration | number: '1.2-2' }}</div>
+            </div>
+            @if (priced.estimatedExecutionCost !== priced.netConsideration) {
+              <div><div class="label">Estimated execution cost recorded</div><div class="value">{{ priced.estimatedExecutionCost | number: '1.2-2' }}</div></div>
+            }
+          </div>
+          @if (ticket.id) {
+            <div class="section-title">Execution progress</div>
+            <p-progressbar [value]="ticket.fillPercent" [showValue]="true" />
+            <div class="muted small">{{ ticket.qtyExecuted | number: '1.0-0' }} of {{ ticket.orderQuantity | number: '1.0-0' }} executed</div>
+          }
+          <div class="form-actions">
+            <p-button label="Clear" severity="secondary" [outlined]="true" (onClick)="clearTicket()" />
+            <p-button [label]="saveLabel()" icon="pi pi-save" [severity]="ticket.buySell === 'SELL' ? 'danger' : 'success'" [loading]="saving" (onClick)="save()" />
+          </div>
+        } @else {
+          <p class="muted">Enter the order and press Confirm Order to see the charges before saving.</p>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<app-report-viewer [reportData]="reportData" />

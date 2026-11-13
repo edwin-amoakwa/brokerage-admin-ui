@@ -1,0 +1,177 @@
+<app-page-header title="Stocks" subtitle="Listed stocks, their exchange, registrar and share capital">
+  <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="refresh()" />
+  <p-button label="Upload stocks" icon="pi pi-upload" severity="secondary" [outlined]="true" (onClick)="openUpload()" />
+  <p-button label="Add stock" icon="pi pi-plus" (onClick)="create()" />
+</app-page-header>
+
+<app-stat-tiles [tiles]="tiles" [clickable]="true" (tileClick)="onTile($event)" />
+
+<div class="card">
+  <div class="filter-bar">
+    <input pInputText [(ngModel)]="keyword" placeholder="Symbol, code or company" (keyup.enter)="reload()" />
+    <p-select [(ngModel)]="exchangeId" [options]="exchanges" optionLabel="itemName" optionValue="id" [showClear]="true"
+              placeholder="All exchanges" appendTo="body" (onChange)="reload()" />
+    <p-button label="Search" icon="pi pi-search" severity="secondary" [outlined]="true" (onClick)="reload()" />
+    @if (missingOnly) {
+      <p-tag value="Missing share data only" severity="warn" />
+    }
+    <span class="muted">{{ total }} stock(s)</span>
+  </div>
+  <p-table [value]="rows" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="20" [totalRecords]="total"
+           [loading]="loading" size="small" [first]="first" dataKey="id" [rowsPerPageOptions]="[20, 50, 100]">
+    <ng-template #header>
+      <tr>
+        <th style="width: 3rem"></th>
+        <th>Stock</th><th>Exchange</th><th>Industry</th>
+        <th class="text-right">Authorised</th><th class="text-right">Issued</th><th style="width: 160px">Issued</th>
+        <th class="actions-col"></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row let-expanded="expanded">
+      <tr>
+        <td><p-button [pRowToggler]="row" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" [text]="true" size="small" ariaLabel="Details" /></td>
+        <td><strong>{{ row.stockSymbol }}</strong><div class="small muted">{{ row.stockName }} · {{ row.stockCode }}</div></td>
+        <td>{{ row.stockExchangeName }}</td>
+        <td>
+          @if (row.industryName) { <p-tag [value]="row.industryName" severity="info" /> } @else { <span class="muted">Not set</span> }
+        </td>
+        <td class="text-right">{{ row.authorisedShares | number }}</td>
+        <td class="text-right">{{ row.issuedShares | number }}</td>
+        <td>
+          @if (row.issuedPercent >= 0) {
+            <p-progressbar [value]="row.issuedPercent > 100 ? 100 : row.issuedPercent" [showValue]="false" [style]="{ height: '6px' }" />
+            <span class="small muted">{{ row.issuedPercent | number: '1.1-1' }}%</span>
+          } @else {
+            <p-tag value="Missing" severity="warn" />
+          }
+        </td>
+        <td class="actions-col">
+          <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="edit(row)" ariaLabel="Edit" />
+          <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="remove(row)" ariaLabel="Delete" />
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #expandedrow let-row>
+      <tr>
+        <td></td>
+        <td colspan="7">
+          <div class="detail-grid">
+            <div><span class="label">Symbol</span><span class="value">{{ row.stockSymbol }}</span></div>
+            <div><span class="label">Code</span><span class="value">{{ row.stockCode }}</span></div>
+            <div><span class="label">Name</span><span class="value">{{ row.stockName }}</span></div>
+            <div><span class="label">Exchange</span><span class="value">{{ row.stockExchangeName }}</span></div>
+            <div><span class="label">Industry</span><span class="value">{{ row.industryName || 'Not set' }}</span></div>
+            <div><span class="label">Registrar</span><span class="value">{{ row.registrarName || 'Not set' }}</span></div>
+            <div><span class="label">Authorised shares</span><span class="value">{{ row.authorisedShares | number }}</span></div>
+            <div><span class="label">Issued shares</span><span class="value">{{ row.issuedShares | number }}</span></div>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage><tr><td colspan="8">No stocks found.</td></tr></ng-template>
+  </p-table>
+</div>
+
+<p-dialog [header]="record?.id ? 'Edit stock' : 'New stock'" [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '720px', maxWidth: '96vw' }" appendTo="body">
+  @if (record) {
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="field-label">Stock symbol<span class="req">*</span></label>
+        <input pInputText [(ngModel)]="record.stockSymbol" class="w-full" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Stock code</label>
+        <input pInputText [(ngModel)]="record.stockCode" class="w-full" [placeholder]="record.stockSymbol || 'Defaults to the symbol'" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Stock exchange<span class="req">*</span></label>
+        <p-select [(ngModel)]="record.stockExchangeId" [options]="exchanges" optionLabel="itemName" optionValue="id" placeholder="Select" class="w-full" appendTo="body" />
+      </div>
+      <div class="col-md-12">
+        <label class="field-label">Stock name<span class="req">*</span></label>
+        <input pInputText [(ngModel)]="record.stockName" class="w-full" />
+      </div>
+      <div class="col-md-6">
+        <label class="field-label">Industry</label>
+        <p-select [(ngModel)]="record.industryId" [options]="industries" optionLabel="itemName" optionValue="id" [showClear]="true" [filter]="true" placeholder="Not set" class="w-full" appendTo="body" />
+      </div>
+      <div class="col-md-6">
+        <label class="field-label">Registrar</label>
+        <p-select [(ngModel)]="record.registrarId" [options]="registrars" optionLabel="itemName" optionValue="id" [showClear]="true" [filter]="true" placeholder="Not set" class="w-full" appendTo="body" />
+      </div>
+      <div class="col-md-6">
+        <label class="field-label">Authorised shares</label>
+        <p-inputnumber [(ngModel)]="record.authorisedShares" [min]="0" [maxFractionDigits]="0" class="w-full" />
+      </div>
+      <div class="col-md-6">
+        <label class="field-label">Issued shares</label>
+        <p-inputnumber [(ngModel)]="record.issuedShares" [min]="0" [maxFractionDigits]="0" class="w-full" />
+      </div>
+      <div class="col-md-12">
+        <label class="field-label">Issued as a share of authorised</label>
+        @if (issuedPercent(record) >= 0) {
+          <p-progressbar [value]="issuedPercent(record) > 100 ? 100 : issuedPercent(record)" [showValue]="false" [style]="{ height: '8px' }" />
+          <small [class.muted]="issuedPercent(record) <= 100" [style.color]="issuedPercent(record) > 100 ? 'var(--p-red-500)' : null">
+            {{ issuedPercent(record) | number: '1.1-1' }}% @if (issuedPercent(record) > 100) { (issued cannot exceed authorised) }
+          </small>
+        } @else {
+          <small class="muted">Enter the authorised shares to see this.</small>
+        }
+      </div>
+    </div>
+  }
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="dialogVisible = false" />
+    <p-button label="Save" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+  </ng-template>
+</p-dialog>
+
+<p-dialog header="Upload stocks" [(visible)]="uploadVisible" [modal]="true" [style]="{ width: '960px', maxWidth: '96vw' }" appendTo="body">
+  <div class="row g-3">
+    <div class="col-md-4">
+      <label class="field-label">Stock exchange<span class="req">*</span></label>
+      <p-select [(ngModel)]="upload.stockExchangeId" [options]="exchanges" optionLabel="itemName" optionValue="id" placeholder="Select" class="w-full" appendTo="body" (onChange)="preview = null" />
+    </div>
+    <div class="col-md-4">
+      <label class="field-label">Registrar<span class="req">*</span></label>
+      <p-select [(ngModel)]="upload.registrarId" [options]="registrars" optionLabel="itemName" optionValue="id" [filter]="true" placeholder="Select" class="w-full" appendTo="body" (onChange)="preview = null" />
+    </div>
+    <div class="col-md-4">
+      <label class="field-label">Excel file<span class="req">*</span></label>
+      <input #stockFile type="file" accept=".xls,.xlsx" class="w-full" (change)="setUploadFile(stockFile.files?.[0] || null)" />
+    </div>
+    <div class="col-md-12">
+      <small class="muted">
+        Expected columns: A Company, B Symbol, C Authorised shares, D Issued shares, optional E Stock id. The first row is a header.
+        Symbols already on the register or repeated in the file are not created.
+      </small>
+    </div>
+  </div>
+
+  @if (preview) {
+    <div class="mt-3">
+      <app-stat-tiles [tiles]="previewTiles" />
+      <p-table [value]="preview.rows" size="small" [paginator]="preview.rows.length > 10" [rows]="10" [scrollable]="true">
+        <ng-template #header>
+          <tr><th>Row</th><th>Company</th><th>Symbol</th><th class="text-right">Authorised</th><th class="text-right">Issued</th><th>Outcome</th><th>Reason</th></tr>
+        </ng-template>
+        <ng-template #body let-row>
+          <tr>
+            <td>{{ row.rowNo }}</td>
+            <td>{{ row.company }}</td>
+            <td>{{ row.symbol }}</td>
+            <td class="text-right">{{ row.authorisedShares | number }}</td>
+            <td class="text-right">{{ row.issuedShares | number }}</td>
+            <td><p-tag [value]="row.outcome" [severity]="row.outcome === 'Create' ? 'success' : row.outcome === 'Skipped' ? 'warn' : 'danger'" /></td>
+            <td>{{ row.reason }}</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  }
+  <ng-template #footer>
+    <p-button label="Close" severity="secondary" [outlined]="true" (onClick)="uploadVisible = false" />
+    <p-button label="Read file" icon="pi pi-file-excel" severity="secondary" [loading]="reading" (onClick)="readFile()" />
+    <p-button [label]="'Create ' + (preview?.createCount || 0) + ' stock(s)'" icon="pi pi-check" [disabled]="!preview || !preview.createCount" [loading]="confirming" (onClick)="confirmUpload()" />
+  </ng-template>
+</p-dialog>

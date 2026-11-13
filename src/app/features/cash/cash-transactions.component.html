@@ -1,0 +1,213 @@
+<app-page-header title="Cash Transactions" subtitle="Client deposits, withdrawals and transfers per account and portfolio">
+  @if (account) {
+    <p-button label="Transfer funds" icon="pi pi-arrow-right-arrow-left" [severity]="transferMode ? 'primary' : 'secondary'"
+              [outlined]="!transferMode" (onClick)="transferMode ? normalMode() : startTransfer()" />
+    <p-button label="Print statement" icon="pi pi-print" severity="secondary" [outlined]="true" [loading]="printing" (onClick)="print()" />
+  }
+</app-page-header>
+
+<div class="card">
+  <label class="field-label">Account</label>
+  <app-entity-picker kind="account" [value]="account" (selected)="selectAccount($event)" buttonLabel="Find account" />
+  @if (ledger?.account; as a) {
+    <div class="detail-grid" style="margin-top: 12px">
+      <div><span class="field-label">Exchange</span>{{ a.exchangeCode || '-' }}</div>
+      <div><span class="field-label">Account name</span>{{ a.accountName }}</div>
+      <div><span class="field-label">Account code</span>{{ a.accountCode }}</div>
+      <div><span class="field-label">Depository code</span>{{ a.depositoryCode || '-' }}</div>
+      <div><span class="field-label">Type</span>{{ a.accountTypeName || '-' }}</div>
+      <div><span class="field-label">Principal investor</span>{{ a.principalInvestorName || '-' }}</div>
+      <div><span class="field-label">Email</span>{{ a.principalInvestorEmail || '-' }}</div>
+    </div>
+  }
+</div>
+
+@if (account) {
+  <app-stat-tiles [tiles]="tiles" />
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="filter-bar">
+          <div class="field">
+            <label class="field-label">Portfolio</label>
+            <p-select [(ngModel)]="portfolio" [options]="portfolios" optionLabel="itemName" optionValue="id" appendTo="body" (onChange)="portfolioChanged()" />
+          </div>
+          <div class="field">
+            <label class="field-label">Type</label>
+            <p-select [(ngModel)]="direction" [options]="directions" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="All" appendTo="body" />
+          </div>
+          <div class="field">
+            <label class="field-label">Status</label>
+            <p-select [(ngModel)]="status" [options]="statuses" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="All" appendTo="body" />
+          </div>
+          <div class="field">
+            <label class="field-label">From</label>
+            <input type="date" pInputText [(ngModel)]="fromDate" />
+          </div>
+          <div class="field">
+            <label class="field-label">To</label>
+            <input type="date" pInputText [(ngModel)]="toDate" />
+          </div>
+          <p-button label="Search" icon="pi pi-search" (onClick)="load()" [loading]="loading" />
+        </div>
+        <div class="table-toolbar">
+          <input pInputText [(ngModel)]="text" placeholder="Filter description or reference" />
+          <span class="muted">Opening balance {{ ledger?.openingBalance | number: '1.2-2' }} · balances count settled rows only</span>
+        </div>
+
+        <p-table [value]="visibleRows" dataKey="id" [paginator]="true" [rows]="15" [rowsPerPageOptions]="[15, 30, 50, 100]"
+                 [loading]="loading" size="small" [expandedRowKeys]="expanded">
+          <ng-template #header>
+            <tr>
+              <th style="width: 2.5rem"></th>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Bank account</th>
+              <th>Portfolio</th>
+              <th class="text-right">Credit</th>
+              <th class="text-right">Debit</th>
+              <th class="text-right">Balance</th>
+              <th>Status</th>
+              <th class="actions-col"></th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-row let-expandedRow="expanded">
+            <tr>
+              <td><p-button [pRowToggler]="row" [icon]="expandedRow ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" [text]="true" size="small" ariaLabel="Details" /></td>
+              <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+              <td>{{ row.description }}@if (row.tranRefNo) {<div class="muted small">{{ row.tranRefNo }}</div>}</td>
+              <td>{{ row.bankAccountName }}</td>
+              <td>{{ row.portfolioName }}</td>
+              <td class="text-right">{{ row.credit ? (row.credit | number: '1.2-2') : '' }}</td>
+              <td class="text-right">{{ row.debit ? (row.debit | number: '1.2-2') : '' }}</td>
+              <td class="text-right">{{ row.balance | number: '1.2-2' }}</td>
+              <td><p-tag [value]="row.paymentStatusName" [severity]="severity(row)" /></td>
+              <td class="actions-col">
+                @if (!row.transferLeg) {
+                  <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="edit(row)" ariaLabel="Edit" />
+                }
+                <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="remove(row)" ariaLabel="Delete" />
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template #expandedrow let-row>
+            <tr>
+              <td colspan="10">
+                <div class="detail-grid">
+                  <div><span class="field-label">Currency</span>{{ row.currencyName || '-' }}</div>
+                  <div><span class="field-label">Channel</span>{{ row.paymentChannelName || '-' }}</div>
+                  <div><span class="field-label">Status</span>{{ row.paymentStatusName }}</div>
+                  <div><span class="field-label">Reference</span>{{ row.tranRefNo || '-' }}</div>
+                  <div><span class="field-label">Verified</span>{{ row.verified ? 'Yes' : 'No' }}</div>
+                  <div><span class="field-label">Value date</span>{{ row.valueDate | date: 'dd/MM/yyyy' }}</div>
+                  <div><span class="field-label">Wallet</span>{{ row.paymentWalletName || '-' }}</div>
+                  <div><span class="field-label">Amount</span>{{ row.amount | number: '1.2-2' }}</div>
+                  <div><span class="field-label">Transfer leg</span>{{ row.transferLeg ? 'Yes' : 'No' }}</div>
+                </div>
+                @if (!row.settled && (!row.paymentStatus || row.paymentStatus === 'PENDING')) {
+                  <div class="form-actions"><p-button label="Mark as paid" icon="pi pi-check" size="small" (onClick)="markPaid(row)" /></div>
+                }
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template #footer>
+            <tr>
+              <td colspan="5">{{ ledger?.transactionCount || 0 }} transaction(s)</td>
+              <td class="text-right">{{ ledger?.totalCredit | number: '1.2-2' }}</td>
+              <td class="text-right">{{ ledger?.totalDebit | number: '1.2-2' }}</td>
+              <td class="text-right">{{ ledger?.ledgerBalance | number: '1.2-2' }}</td>
+              <td colspan="2"></td>
+            </tr>
+          </ng-template>
+          <ng-template #emptymessage><tr><td colspan="10">No cash transactions for this period.</td></tr></ng-template>
+        </p-table>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      @if (!transferMode) {
+        <div class="card">
+          <div class="card-title">{{ record?.id ? 'Edit transaction' : 'New transaction' }}</div>
+          @if (record) {
+            <label class="field-label">Value date<span class="req">*</span></label>
+            <input type="date" pInputText [(ngModel)]="record.valueDate" class="w-full" />
+
+            <label class="field-label">Portfolio<span class="req">*</span></label>
+            <p-select [(ngModel)]="record.portfolio" [options]="portfolios" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" />
+
+            <label class="field-label">Bank account<span class="req">*</span></label>
+            <p-select [(ngModel)]="record.bankAccountId" [options]="bankAccounts" optionLabel="itemName" optionValue="id" [filter]="true" class="w-full" appendTo="body" placeholder="Choose a bank account" />
+
+            <label class="field-label">Direction</label>
+            <div style="display: flex; gap: 8px">
+              <p-button label="Credit (money in)" [outlined]="record.debitCredit !== 'CREDIT'" severity="success" (onClick)="record.debitCredit = 'CREDIT'" />
+              <p-button label="Debit (money out)" [outlined]="record.debitCredit !== 'DEBIT'" severity="danger" (onClick)="record.debitCredit = 'DEBIT'" />
+            </div>
+
+            <label class="field-label">Amount<span class="req">*</span></label>
+            <p-inputnumber [(ngModel)]="record.amount" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" [min]="0" class="w-full" inputStyleClass="w-full" />
+
+            <div class="row g-3">
+              <div class="col-6">
+                <label class="field-label">Currency</label>
+                <p-select [(ngModel)]="record.currency" [options]="currencies" optionLabel="itemName" optionValue="id" [showClear]="true" class="w-full" appendTo="body" />
+              </div>
+              <div class="col-6">
+                <label class="field-label">Channel</label>
+                <p-select [(ngModel)]="record.paymentChannel" [options]="channels" optionLabel="itemName" optionValue="id" [showClear]="true" class="w-full" appendTo="body" />
+              </div>
+            </div>
+
+            <label class="field-label">Payment status</label>
+            <p-select [(ngModel)]="record.paymentStatus" [options]="statuses" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" />
+
+            <label class="field-label">Reference</label>
+            <input pInputText [(ngModel)]="record.tranRefNo" class="w-full" />
+
+            <label class="field-label">Description<span class="req">*</span></label>
+            <textarea pTextarea [(ngModel)]="record.description" rows="3" class="w-full"></textarea>
+
+            <p class="muted small">Settled balance after posting (once paid): <strong>{{ balanceAfterPosting | number: '1.2-2' }}</strong></p>
+            <div class="form-actions">
+              <p-button label="Clear" severity="secondary" [outlined]="true" (onClick)="newRecord()" />
+              <p-button label="Save transaction" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="card">
+          <div class="card-title">Transfer funds</div>
+          <p class="muted small">Posts a paid debit on this account and a paid credit on the destination in one transaction.</p>
+
+          <label class="field-label">Value date<span class="req">*</span></label>
+          <input type="date" pInputText [(ngModel)]="transfer.valueDate" class="w-full" />
+
+          <label class="field-label">From</label>
+          <div>{{ account?.displayName }} · {{ portfolioName(portfolio) }}</div>
+          <div class="muted small">Settled balance {{ ledger?.availableBalance | number: '1.2-2' }}</div>
+
+          <label class="field-label">To account<span class="req">*</span></label>
+          <app-entity-picker kind="account" [value]="transfer.destination" (selected)="transfer.destination = $event" buttonLabel="Find" />
+
+          <label class="field-label">Destination portfolio<span class="req">*</span></label>
+          <p-select [(ngModel)]="transfer.destinationPortfolio" [options]="portfolios" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" />
+
+          <label class="field-label">Amount<span class="req">*</span></label>
+          <p-inputnumber [(ngModel)]="transfer.amount" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" [min]="0" class="w-full" inputStyleClass="w-full" />
+
+          <label class="field-label">Description</label>
+          <textarea pTextarea [(ngModel)]="transfer.description" rows="2" class="w-full" placeholder="Internal transfer"></textarea>
+
+          <p class="muted small">Source balance after transfer: <strong>{{ (ledger?.availableBalance || 0) - (transfer.amount || 0) | number: '1.2-2' }}</strong></p>
+          <div class="form-actions">
+            <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="normalMode()" />
+            <p-button label="Execute transfer" icon="pi pi-send" [loading]="saving" (onClick)="doTransfer()" />
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}
+
+<app-report-viewer [reportData]="reportData" />

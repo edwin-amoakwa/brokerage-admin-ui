@@ -1,0 +1,18 @@
+<div class="stat-tiles">
+  @for (tile of tiles; track tile.label) {
+    <div class="stat-tile" [class]="'tone-' + (tile.tone || 'none')" [class.clickable]="clickable" [class.active]="tile.active"
+         (click)="clickable && tileClick.emit(tile)">
+      <div class="stat-label">{{ tile.label }}</div>
+      <div class="stat-value">
+        @switch (tile.format || 'money') {
+          @case ('money') { {{ (tile.value ?? 0) | number: '1.2-2' }} }
+          @case ('number') { {{ (tile.value ?? 0) | number: '1.0-0' }} }
+          @default { {{ tile.value }} }
+        }
+      </div>
+      @if (tile.foot) {
+        <div class="stat-foot">{{ tile.foot }}</div>
+      }
+    </div>
+  }
+</div>

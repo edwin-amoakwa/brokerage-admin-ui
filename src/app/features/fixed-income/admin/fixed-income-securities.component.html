@@ -1,0 +1,210 @@
+@if (step === 0) {
+  <app-page-header title="Fixed Income Securities" subtitle="Bills, notes and bonds with their coupon schedules">
+    <p-button label="Add new security" icon="pi pi-plus" (onClick)="create()" />
+  </app-page-header>
+
+  <app-stat-tiles [tiles]="tiles" />
+
+  <div class="card">
+    <div class="filter-bar">
+      <div class="field">
+        <label class="field-label">Issued from</label>
+        <input type="date" pInputText [(ngModel)]="fromDate" />
+      </div>
+      <div class="field">
+        <label class="field-label">Issued to</label>
+        <input type="date" pInputText [(ngModel)]="toDate" />
+      </div>
+      <div class="field">
+        <label class="field-label">Asset subclass</label>
+        <p-select [(ngModel)]="filterSubClass" [options]="subClasses" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="All" appendTo="body" />
+      </div>
+      <div class="field">
+        <label class="field-label">Rate policy</label>
+        <p-select [(ngModel)]="filterRatePolicy" [options]="ratePolicies" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="All" appendTo="body" />
+      </div>
+      <div class="field">
+        <label class="field-label">Code, ISIN or issuer</label>
+        <input pInputText [(ngModel)]="keyword" (keyup.enter)="reload()" />
+      </div>
+      <p-button label="Search" icon="pi pi-search" (onClick)="reload()" />
+      <span class="muted">{{ total }} security(ies)</span>
+    </div>
+
+    <p-table [value]="rows" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="20" [totalRecords]="total"
+             [loading]="loading" size="small" [first]="first" dataKey="id">
+      <ng-template #header>
+        <tr>
+          <th style="width: 2rem"></th><th>Security</th><th>Issuer</th><th>Subclass</th><th class="text-right">Coupon %</th>
+          <th>Issue date</th><th>Maturity</th><th>Tenor</th><th class="text-right">Payments</th><th>Status</th><th class="actions-col"></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row let-expanded="expanded">
+        <tr>
+          <td><p-button [pRowToggler]="row" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" [text]="true" size="small" /></td>
+          <td><strong>{{ row.securityCode }}</strong><br /><span class="muted small">{{ row.isinCode }}</span></td>
+          <td>{{ row.securityIssuerName }}</td>
+          <td>{{ row.assetSubClassName }}</td>
+          <td class="text-right">{{ row.coupon | number: '1.2-4' }}</td>
+          <td>{{ row.issueDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ row.maturityDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ row.tenorName }}</td>
+          <td class="text-right">{{ row.derivedPaymentCount }}</td>
+          <td><p-tag [value]="row.status" [severity]="statusSeverity(row.status)" /></td>
+          <td class="actions-col">
+            <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="edit(row)" ariaLabel="Edit" />
+            <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="remove(row)" ariaLabel="Delete" />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #expandedrow let-row>
+        <tr>
+          <td colspan="11">
+            <div class="detail-grid">
+              <div><div class="label">Security code</div><div class="value">{{ row.securityCode }}</div></div>
+              <div><div class="label">ISIN</div><div class="value">{{ row.isinCode || '-' }}</div></div>
+              <div><div class="label">Rate policy</div><div class="value">{{ row.ratePolicyName }}</div></div>
+              <div><div class="label">Day count</div><div class="value">{{ row.dayCountName }}</div></div>
+              <div><div class="label">Interest interval (days)</div><div class="value">{{ row.interestPaymentInterval }}</div></div>
+              <div><div class="label">No. of interest payments</div><div class="value">{{ row.noOfInterestPayment }}</div></div>
+              <div><div class="label">Leap-year adjustment</div><div class="value">{{ row.leapYearAdjustment ? 'Yes' : 'No' }}</div></div>
+              <div><div class="label">Currency</div><div class="value">{{ row.currency || '-' }}</div></div>
+              <div><div class="label">Country</div><div class="value">{{ row.country || '-' }}</div></div>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="11">No securities found.</td></tr></ng-template>
+    </p-table>
+  </div>
+}
+
+@if (step === 1 && record) {
+  <app-page-header [title]="record.id ? 'Edit ' + record.securityCode : 'New security'" subtitle="Step 1 of 2: terms" />
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="field-label">Asset subclass<span class="req">*</span></label>
+            <p-select [(ngModel)]="record.assetSubClass" [options]="subClasses" optionLabel="itemName" optionValue="id" [filter]="true" class="w-full" appendTo="body" />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">Security issuer<span class="req">*</span></label>
+            <p-select [(ngModel)]="record.securityIssuerId" [options]="issuers" optionLabel="itemName" optionValue="id" [filter]="true" class="w-full" appendTo="body"
+                      placeholder="Select (add issuers under Security Issuers)" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">Issue date<span class="req">*</span></label>
+            <input type="date" pInputText [(ngModel)]="record.issueDate" (ngModelChange)="suggestMaturityDate()" class="w-full" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">Tenor<span class="req">*</span></label>
+            <p-select [(ngModel)]="record.tenor" [options]="tenors" optionLabel="itemName" optionValue="id" (onChange)="suggestMaturityDate()" class="w-full" appendTo="body" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">Maturity date<span class="req">*</span></label>
+            <input type="date" pInputText [(ngModel)]="record.maturityDate" class="w-full" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">Currency</label>
+            <p-select [(ngModel)]="record.currency" [options]="currencies" optionLabel="itemName" optionValue="id" [filter]="true" [showClear]="true" class="w-full" appendTo="body" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">Country</label>
+            <input pInputText [(ngModel)]="record.country" class="w-full" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">ISIN</label>
+            <input pInputText [(ngModel)]="record.isinCode" class="w-full" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">Rate policy<span class="req">*</span></label>
+            <p-select [(ngModel)]="record.ratePolicy" [options]="ratePolicies" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">Coupon %<span class="req">*</span></label>
+            <p-inputnumber [(ngModel)]="record.coupon" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="4" class="w-full" inputStyleClass="w-full" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">Day count<span class="req">*</span></label>
+            <p-select [(ngModel)]="record.dayCount" [options]="dayCounts" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">Interest payment interval (days)</label>
+            <p-inputnumber [(ngModel)]="record.interestPaymentInterval" [min]="1" [useGrouping]="false" class="w-full" inputStyleClass="w-full" />
+            <small class="muted">Defaults to 182</small>
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">No. of interest payments</label>
+            <p-inputnumber [(ngModel)]="record.noOfInterestPayment" [min]="0" [useGrouping]="false" [disabled]="record.ratePolicy !== 'FLOATING_RATE'"
+                           class="w-full" inputStyleClass="w-full" />
+            <small class="muted">Floating rate only</small>
+          </div>
+          <div class="col-md-4 check-field">
+            <p-checkbox [(ngModel)]="record.leapYearAdjustment" [binary]="true" inputId="fiLeap" />
+            <label for="fiLeap">Leap year adjustment</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-title">Derived</div>
+        <div class="detail-grid">
+          <div><div class="label">Security code</div><div class="value">{{ codePreview }}</div></div>
+          <div><div class="label">Tenor days</div><div class="value">{{ tenorDays }}</div></div>
+          <div><div class="label">Interest payments</div><div class="value">{{ derivedPaymentCount }}</div></div>
+          <div><div class="label">Coupon per payment %</div><div class="value">{{ couponPerPayment | number: '1.2-4' }}</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="form-actions">
+    <p-button label="Close" severity="secondary" [outlined]="true" (onClick)="close()" />
+    <p-button label="Generate schedule" icon="pi pi-arrow-right" [loading]="busy" (onClick)="generateSchedule()" />
+  </div>
+}
+
+@if (step === 2 && preview) {
+  <app-page-header [title]="preview.securityCode" subtitle="Step 2 of 2: review the schedule, then save" />
+  <div class="card">
+    <div class="detail-grid">
+      <div><div class="label">Issuer</div><div class="value">{{ preview.securityIssuerName }}</div></div>
+      <div><div class="label">Subclass</div><div class="value">{{ preview.assetSubClassName }}</div></div>
+      <div><div class="label">Issue date</div><div class="value">{{ preview.issueDate | date: 'dd/MM/yyyy' }}</div></div>
+      <div><div class="label">Maturity date</div><div class="value">{{ preview.maturityDate | date: 'dd/MM/yyyy' }}</div></div>
+      <div><div class="label">Tenor</div><div class="value">{{ preview.tenorName }}</div></div>
+      <div><div class="label">Coupon %</div><div class="value">{{ preview.coupon | number: '1.2-4' }}</div></div>
+      <div><div class="label">Rate policy</div><div class="value">{{ preview.ratePolicyName }}</div></div>
+      <div><div class="label">Day count</div><div class="value">{{ preview.dayCountName }}</div></div>
+      <div><div class="label">Interest payments</div><div class="value">{{ preview.noOfInterestPayment }}</div></div>
+      <div><div class="label">ISIN</div><div class="value">{{ preview.isinCode || '-' }}</div></div>
+    </div>
+    @if (record?.id) {
+      <p class="muted small">Saving replaces this security's existing schedule with the one below.</p>
+    }
+  </div>
+  <div class="card">
+    <div class="card-title">Corporate action schedule</div>
+    <p-table [value]="preview.corporateActions || []" size="small" [paginator]="(preview.corporateActions?.length || 0) > 15" [rows]="15">
+      <ng-template #header>
+        <tr><th>#</th><th>Value date</th><th>Type</th><th class="text-right">Days</th><th class="text-right">Coupon %</th></tr>
+      </ng-template>
+      <ng-template #body let-row>
+        <tr>
+          <td>{{ row.counter }}</td>
+          <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ row.corporateActionTypeName }}</td>
+          <td class="text-right">{{ row.daysCount }}</td>
+          <td class="text-right">{{ row.corporateActionType === 'INTEREST_PAYMENT' ? (row.interestRate | number: '1.2-4') : '' }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+  <div class="form-actions">
+    <p-button label="Back to terms" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" (onClick)="step = 1" />
+    <p-button label="Close" severity="secondary" [outlined]="true" (onClick)="close()" />
+    <p-button label="Save security" icon="pi pi-check" [loading]="busy" (onClick)="save()" />
+  </div>
+}

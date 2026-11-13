@@ -1,0 +1,33 @@
+<app-crud-page [config]="config" />
+
+<div class="card">
+  <h3 class="card-title">Upload countries list</h3>
+  <p class="muted">
+    Excel sheet with a header row, then columns A Country code, B Country name, C Currency, D Currency code.
+    Rows whose country code already exists update that country; new codes are added. Nothing is deleted.
+  </p>
+  <div class="filter-bar">
+    <input #fileInput type="file" accept=".xls,.xlsx" (change)="file = fileInput.files?.[0] || null; report = null" />
+    <p-button label="Upload and save" icon="pi pi-upload" [disabled]="!file" [loading]="uploading" (onClick)="upload(fileInput)" />
+  </div>
+
+  @if (report) {
+    <app-stat-tiles [tiles]="tiles" />
+    @if (problemRows.length) {
+      <p-table [value]="problemRows" size="small" [paginator]="problemRows.length > 10" [rows]="10">
+        <ng-template #header>
+          <tr><th>Row</th><th>Code</th><th>Name</th><th>Outcome</th><th>Reason</th></tr>
+        </ng-template>
+        <ng-template #body let-row>
+          <tr>
+            <td>{{ row.rowNo }}</td>
+            <td>{{ row.countryCode }}</td>
+            <td>{{ row.countryName }}</td>
+            <td><p-tag [value]="row.outcome" severity="warn" /></td>
+            <td>{{ row.reason }}</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    }
+  }
+</div>

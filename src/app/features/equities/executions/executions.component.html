@@ -1,0 +1,76 @@
+<app-page-header title="Equity Transactions" subtitle="Individual executions against orders">
+  <p-button label="Print" icon="pi pi-print" severity="secondary" [outlined]="true" (onClick)="print()" />
+</app-page-header>
+
+<app-stat-tiles [tiles]="tiles" />
+
+<div class="card">
+  <div class="filter-bar">
+    <div class="field">
+      <label class="field-label">From</label>
+      <input type="date" pInputText [(ngModel)]="filter.fromDate" />
+    </div>
+    <div class="field">
+      <label class="field-label">To</label>
+      <input type="date" pInputText [(ngModel)]="filter.toDate" />
+    </div>
+    <div class="field">
+      <label class="field-label">Side</label>
+      <p-select [(ngModel)]="filter.buySell" [options]="sides" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="All" appendTo="body" />
+    </div>
+    <div class="field">
+      <label class="field-label">Stock</label>
+      <p-select [(ngModel)]="filter.stockId" [options]="stocks" optionLabel="itemName" optionValue="id" [filter]="true" [showClear]="true" placeholder="All" appendTo="body" />
+    </div>
+    <div class="field">
+      <label class="field-label">Status</label>
+      <p-select [(ngModel)]="filter.transactionStatus" [options]="statuses" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="All" appendTo="body" />
+    </div>
+    <div class="field">
+      <label class="field-label">Search</label>
+      <input pInputText [(ngModel)]="filter.keyword" placeholder="Execution, order or stock" (keyup.enter)="reload()" />
+    </div>
+    <p-button label="Search" icon="pi pi-search" (onClick)="reload()" />
+  </div>
+
+  <p-table [value]="rows" dataKey="id" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="25" [rowsPerPageOptions]="[10, 25, 50, 100]"
+           [first]="first" [totalRecords]="total" [loading]="loading" size="small">
+    <ng-template #header>
+      <tr><th style="width: 2.5rem"></th><th>Value Date</th><th>Execution</th><th>Trade order / Trade</th><th>Stock</th><th>Side</th>
+        <th class="text-right">Quantity</th><th style="width: 8rem">Order Filled</th><th class="text-right">Price</th>
+        <th class="text-right">Cost</th><th>Status</th><th>Message</th></tr>
+    </ng-template>
+    <ng-template #body let-e let-expanded="expanded">
+      <tr>
+        <td><p-button [pRowToggler]="e" [text]="true" size="small" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" /></td>
+        <td>{{ e.valueDate | date: 'dd/MM/yyyy' }}</td>
+        <td>{{ e.executionId }}</td>
+        <td>{{ e.orderNo }}<div class="muted small">{{ e.tradeAccountName || 'not yet booked' }}</div></td>
+        <td>{{ e.stockSymbol }}</td>
+        <td><p-tag [value]="e.buySellName" [severity]="side(e.buySell)" /></td>
+        <td class="text-right">{{ e.quantity | number: '1.0-0' }}</td>
+        <td><p-progressbar [value]="e.fillPercent" [showValue]="true" [style]="{ height: '14px' }" /></td>
+        <td class="text-right">{{ e.executionPrice | number: '1.2-4' }}</td>
+        <td class="text-right">{{ e.executionCost | number: '1.2-2' }}</td>
+        <td><p-tag [value]="e.transactionStatusName" [severity]="e.processed ? 'success' : 'warn'" /></td>
+        <td>{{ e.message }}</td>
+      </tr>
+    </ng-template>
+    <ng-template #expandedrow let-e>
+      <tr>
+        <td colspan="12">
+          <div class="detail-grid">
+            <div><div class="label">Execution type</div><div class="value">{{ e.executionTypeName || '-' }}</div></div>
+            <div><div class="label">Order type</div><div class="value">{{ e.orderTypeName || '-' }}</div></div>
+            <div><div class="label">Quantity sold</div><div class="value">{{ e.qtySold | number: '1.0-0' }}</div></div>
+            <div><div class="label">Quantity left</div><div class="value">{{ e.qtyLeft | number: '1.0-0' }}</div></div>
+            <div><div class="label">Message</div><div class="value">{{ e.message || '-' }}</div></div>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage><tr><td colspan="12">No executions found.</td></tr></ng-template>
+  </p-table>
+</div>
+
+<app-report-viewer [reportData]="reportData" />

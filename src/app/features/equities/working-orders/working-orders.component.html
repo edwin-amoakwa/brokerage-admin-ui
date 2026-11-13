@@ -1,0 +1,190 @@
+@if (!detail) {
+  <app-page-header title="Working Orders" subtitle="Orders the market can still fill">
+    <p-button label="Load" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="reload()" />
+    <p-button label="Print" icon="pi pi-print" severity="secondary" [outlined]="true" (onClick)="print()" />
+  </app-page-header>
+
+  <app-stat-tiles [tiles]="tiles" />
+
+  <div class="card">
+    <div class="table-toolbar">
+      <input pInputText [(ngModel)]="keyword" placeholder="Order no, account or stock" (keyup.enter)="reload()" />
+      <p-button label="Search" icon="pi pi-search" severity="secondary" [outlined]="true" (onClick)="reload()" />
+      <span class="muted">{{ total }} working order(s)</span>
+    </div>
+    <p-table [value]="rows" dataKey="id" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="15" [first]="first"
+             [totalRecords]="total" [loading]="loading" size="small">
+      <ng-template #header>
+        <tr>
+          <th style="width: 2.5rem"></th><th>Order</th><th>Side</th><th>Account</th><th>Stock</th>
+          <th class="text-right">Ordered</th><th style="width: 8rem">Filled</th><th class="text-right">Remaining</th>
+          <th class="text-right">Limit</th><th class="text-right">vs Market</th><th>Good until</th><th>Status</th><th class="actions-col"></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row let-expanded="expanded">
+        <tr>
+          <td><p-button [pRowToggler]="row" [text]="true" size="small" [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" /></td>
+          <td>{{ row.orderNo }}<div class="muted small">{{ row.valueDate | date: 'dd/MM/yyyy' }}</div></td>
+          <td><p-tag [value]="row.buySellName" [severity]="side(row.buySell)" /></td>
+          <td>{{ row.accountName }}<div class="muted small">{{ row.accountCode }}</div></td>
+          <td>{{ row.stockSymbol }}</td>
+          <td class="text-right">{{ row.orderQuantity | number: '1.0-0' }}</td>
+          <td><p-progressbar [value]="row.fillPercent" [showValue]="true" [style]="{ height: '14px' }" /></td>
+          <td class="text-right">{{ row.remaining | number: '1.0-0' }}</td>
+          <td class="text-right">{{ row.orderPrice | number: '1.2-4' }}</td>
+          <td class="text-right">
+            @if (row.marketPrice > 0) {
+              <span [class.tag-ok]="row.workable">{{ row.marketVariance | number: '1.2-2' }}%</span>
+              <div class="muted small">{{ row.marketPrice | number: '1.2-4' }}</div>
+            } @else {
+              <span class="muted">No price</span>
+            }
+          </td>
+          <td>
+            {{ row.timeInForceName || '-' }}
+            @if (row.expiringToday) { <p-tag value="Today" severity="warn" /> }
+          </td>
+          <td><p-tag [value]="row.orderStatusName" [severity]="severity(row.orderStatus)" /></td>
+          <td class="actions-col"><p-button label="Manage" size="small" [outlined]="true" (onClick)="open(row)" /></td>
+        </tr>
+      </ng-template>
+      <ng-template #expandedrow let-row>
+        <tr>
+          <td colspan="13">
+            <div class="detail-grid">
+              <div><div class="label">Order no</div><div class="value">{{ row.orderNo }}</div></div>
+              <div><div class="label">Date</div><div class="value">{{ row.valueDate | date: 'dd/MM/yyyy' }}</div></div>
+              <div><div class="label">Account</div><div class="value">{{ row.accountName }}</div></div>
+              <div><div class="label">Order quantity</div><div class="value">{{ row.orderQuantity | number: '1.0-0' }}</div></div>
+              <div><div class="label">Side</div><div class="value">{{ row.buySellName }}</div></div>
+              <div><div class="label">Order price</div><div class="value">{{ row.orderPrice | number: '1.2-4' }}</div></div>
+              <div><div class="label">Qty left</div><div class="value">{{ row.qtyLeft | number: '1.0-0' }}</div></div>
+              <div><div class="label">Qty executed</div><div class="value">{{ row.qtyExecuted | number: '1.0-0' }}</div></div>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #footer>
+        <tr>
+          <td colspan="5">Totals</td>
+          <td class="text-right">{{ summary.totalOrdered | number: '1.0-0' }}</td>
+          <td></td>
+          <td class="text-right">{{ summary.quantityRemaining | number: '1.0-0' }}</td>
+          <td colspan="5"></td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="13">No working orders.</td></tr></ng-template>
+    </p-table>
+  </div>
+} @else {
+  <app-page-header [title]="'Order ' + order.orderNo" [subtitle]="order.buySellName + ' ' + order.stockSymbol + ' for ' + order.accountName">
+    <p-tag [value]="order.orderStatusName" [severity]="severity(order.orderStatus)" />
+    <p-button label="Close" icon="pi pi-times" severity="secondary" [outlined]="true" (onClick)="close()" />
+  </app-page-header>
+
+  <div class="card">
+    <div class="row g-3">
+      <div class="col-md-3"><div class="field-label">Ordered</div><strong>{{ order.orderQuantity | number: '1.0-0' }} &#64; {{ order.orderPrice | number: '1.2-4' }}</strong></div>
+      <div class="col-md-3">
+        <div class="field-label">Executed (processed)</div>
+        <p-progressbar [value]="percent(order.qtyExecuted, order.orderQuantity)" [showValue]="false" [style]="{ height: '10px' }" />
+        <span class="small">{{ order.qtyExecuted | number: '1.0-0' }}</span>
+      </div>
+      <div class="col-md-3">
+        <div class="field-label">Booked, awaiting processing</div>
+        <p-progressbar [value]="percent(detail.bookedQuantity, order.orderQuantity)" [showValue]="false" [style]="{ height: '10px' }" />
+        <span class="small">{{ detail.bookedQuantity | number: '1.0-0' }}</span>
+      </div>
+      <div class="col-md-3"><div class="field-label">Remaining to book</div><strong>{{ detail.remainingToBook | number: '1.0-0' }}</strong></div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card">
+        <div class="card-title">Book a fill</div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="field-label">Execution date<span class="req">*</span></label>
+            <input type="date" pInputText [(ngModel)]="fill.valueDate" class="w-full" />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">Execution type</label>
+            <input pInputText [value]="previewType()" disabled class="w-full" />
+            <small class="muted">Set from the quantity: a fill of the remainder is a FILL, less is a PARTIAL FILL.</small>
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">Quantity<span class="req">*</span></label>
+            <p-inputnumber [(ngModel)]="fill.quantity" [maxFractionDigits]="0" class="w-full" inputStyleClass="w-full" />
+            <a href="javascript:void(0)" class="small" (click)="fillRemainder()">fill the remainder</a>
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">Price<span class="req">*</span></label>
+            <p-inputnumber [(ngModel)]="fill.executionPrice" [minFractionDigits]="2" [maxFractionDigits]="4" class="w-full" inputStyleClass="w-full" />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">Execution ID</label>
+            <input pInputText value="Generated when you book" disabled class="w-full" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <p-button label="Clear" severity="secondary" [outlined]="true" (onClick)="resetFill()" />
+          <p-button label="Book fill" icon="pi pi-plus" [disabled]="detail.remainingToBook === 0" [loading]="busy" (onClick)="bookFill()" />
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card">
+        <div class="card-title">Preview</div>
+        <div class="detail-grid">
+          <div><div class="label">Consideration</div><div class="value">{{ previewConsideration() | number: '1.2-2' }}</div></div>
+          <div><div class="label">Filled after this</div><div class="value">{{ previewFilled() | number: '1.0-0' }}</div></div>
+          <div><div class="label">Remaining after this</div><div class="value">{{ previewRemaining() | number: '1.0-0' }}</div></div>
+          <div><div class="label">Order will be</div><div class="value">{{ previewStatus() }}</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-toolbar">
+      <div class="card-title">Executions booked</div>
+      @if (detail.unprocessedCount > 0) {
+        <p-tag [value]="detail.unprocessedCount + ' not processed'" severity="warn" />
+      } @else {
+        <p-tag value="All processed" severity="success" />
+      }
+      <span class="muted"></span>
+      <p-button label="Process trade" icon="pi pi-cog" [disabled]="detail.unprocessedCount === 0" [loading]="busy" (onClick)="process()" />
+    </div>
+    <p-table [value]="detail.executions" size="small">
+      <ng-template #header>
+        <tr><th>Date</th><th>Execution ID</th><th>Type</th><th class="text-right">Quantity</th><th class="text-right">Price</th>
+          <th class="text-right">Cost</th><th>Status</th><th class="actions-col"></th></tr>
+      </ng-template>
+      <ng-template #body let-e>
+        <tr>
+          <td>{{ e.valueDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ e.executionId }}</td>
+          <td>{{ e.executionTypeName }}</td>
+          <td class="text-right">{{ e.quantity | number: '1.0-0' }}</td>
+          <td class="text-right">{{ e.executionPrice | number: '1.2-4' }}</td>
+          <td class="text-right">{{ e.executionCost | number: '1.2-2' }}</td>
+          <td><p-tag [value]="e.transactionStatusName" [severity]="e.processed ? 'success' : 'warn'" /></td>
+          <td class="actions-col">
+            @if (!e.processed) {
+              <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="removeFill(e)" ariaLabel="Delete" />
+            }
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #footer>
+        <tr><td colspan="3">Totals</td><td class="text-right">{{ detail.executionsQuantity | number: '1.0-0' }}</td><td></td>
+          <td class="text-right">{{ detail.bookedCost | number: '1.2-2' }}</td><td colspan="2"></td></tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="8">No executions booked yet.</td></tr></ng-template>
+    </p-table>
+  </div>
+}
+
+<app-report-viewer [reportData]="reportData" />

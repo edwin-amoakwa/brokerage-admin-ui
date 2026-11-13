@@ -1,0 +1,221 @@
+@if (!data) {
+  <app-page-header title="Account Portfolio" subtitle="Valuation, holdings, cash and trading history for one account" />
+  <div class="card">
+    <label class="field-label">Account</label>
+    <app-entity-picker kind="account" [value]="null" (selected)="select($event)" />
+    @if (loading) { <p class="muted">Valuing the portfolio...</p> }
+  </div>
+} @else {
+  <app-page-header [title]="acc.accountName" [subtitle]="'Valued as at ' + (s.valueDate | date: 'dd/MM/yyyy')">
+    <p-button label="Change Account" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" (onClick)="change()" />
+    <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" [loading]="loading" (onClick)="refresh()" />
+    <p-button label="Portfolio Statement" icon="pi pi-file-pdf" severity="secondary" [outlined]="true" (onClick)="printStatement()" />
+    <p-button label="Print Trades Report" icon="pi pi-print" (onClick)="printTrades()" />
+  </app-page-header>
+
+  <div class="card identity">
+    <span class="avatar">{{ acc.stockExchangeCode || '-' }}</span>
+    <div class="id-main">
+      <div class="strong">{{ acc.accountName }}</div>
+      <div class="muted small">{{ acc.accountCode }} · Depository {{ acc.depositoryCode || '-' }} · {{ acc.stockExchangeName || 'No exchange' }}</div>
+    </div>
+    @if (acc.accountType) { <p-tag [value]="acc.accountTypeName" [severity]="typeSeverity(acc.accountType)" /> }
+    @if (acc.classificationName) { <p-tag [value]="acc.classificationName" severity="secondary" /> }
+    @if (data.investor) {
+      <div class="id-inv">
+        <div>{{ data.investor.displayName }}</div>
+        <div class="muted small">{{ data.investor.emailAddress || 'No email on file' }}</div>
+      </div>
+    }
+  </div>
+
+  <app-stat-tiles [tiles]="tiles" />
+
+  <div class="card">
+    <div class="table-toolbar">
+      <div class="card-title">Equity Holdings</div>
+      <span class="muted">Unrealised gain
+        <strong [class]="gainClass(s.equityGainStyle)">{{ s.equityGain | number: '1.2-2' }} ({{ s.equityGainPercent | number: '1.2-2' }}%)</strong></span>
+    </div>
+    <div class="alloc-bar">
+      <span class="alloc eq" [style.width.%]="s.equityPercent"></span>
+      <span class="alloc fi" [style.width.%]="s.fixedIncomePercent"></span>
+      <span class="alloc cash" [style.width.%]="cashWidth()"></span>
+    </div>
+    <div class="alloc-legend small">
+      <span><i class="dot eq"></i>Equities {{ s.equityPercent | number: '1.1-1' }}%</span>
+      <span><i class="dot fi"></i>Fixed income {{ s.fixedIncomePercent | number: '1.1-1' }}%</span>
+      <span><i class="dot cash"></i>Cash {{ s.cashPercent | number: '1.1-1' }}%</span>
+    </div>
+    <p-table [value]="data.equityHoldings" size="small">
+      <ng-template #header>
+        <tr><th>Stock</th><th class="text-right">Shares</th><th class="text-right">Avg Cost</th><th class="text-right">Market Price</th>
+          <th class="text-right">Market Value</th><th class="text-right">Gain/Loss</th><th class="text-right">Weight</th></tr>
+      </ng-template>
+      <ng-template #body let-h>
+        <tr>
+          <td [title]="h.stockName"><strong>{{ h.stockSymbol || h.stockCode }}</strong> <span class="muted small">{{ h.stockName }}</span></td>
+          <td class="text-right">{{ h.quantity | number: '1.0-0' }}</td>
+          <td class="text-right">{{ h.averageCost | number: '1.2-4' }}</td>
+          <td class="text-right">{{ h.marketPrice | number: '1.2-4' }}</td>
+          <td class="text-right">{{ h.marketValue | number: '1.2-2' }}</td>
+          <td class="text-right" [class]="gainClass(h.gainStyle)">{{ h.gain | number: '1.2-2' }} <span class="small">({{ h.gainPercent | number: '1.2-2' }}%)</span></td>
+          <td class="text-right">{{ h.weight | number: '1.2-2' }}%</td>
+        </tr>
+      </ng-template>
+      <ng-template #footer>
+        <tr>
+          <td>{{ s.stockCount }} stock(s)</td><td></td><td></td><td></td>
+          <td class="text-right">{{ s.equityValue | number: '1.2-2' }}</td>
+          <td class="text-right" [class]="gainClass(s.equityGainStyle)">{{ s.equityGain | number: '1.2-2' }}</td>
+          <td class="text-right">{{ s.equityPercent | number: '1.2-2' }}%</td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="7">No equity holdings.</td></tr></ng-template>
+    </p-table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Fixed Income Holdings</div>
+    <p-table [value]="data.fixedIncomeHoldings" size="small">
+      <ng-template #header>
+        <tr><th>Security</th><th>Value Date</th><th class="text-right">Rate</th><th class="text-right">Face Value</th>
+          <th class="text-right">Accrued Interest</th><th class="text-right">Value</th></tr>
+      </ng-template>
+      <ng-template #body let-h>
+        <tr>
+          <td>{{ h.securityName }}</td>
+          <td>{{ h.valueDate | date: 'dd/MM/yyyy' }}</td>
+          <td class="text-right">{{ h.interestRate | number: '1.2-4' }}</td>
+          <td class="text-right">{{ h.faceValue | number: '1.2-2' }}</td>
+          <td class="text-right">{{ h.accruedInterest | number: '1.2-2' }}</td>
+          <td class="text-right">{{ h.marketValue | number: '1.2-2' }}</td>
+        </tr>
+      </ng-template>
+      <ng-template #footer>
+        <tr>
+          <td>{{ s.fixedIncomeCount }} holding(s)</td><td></td><td></td>
+          <td class="text-right">{{ s.fixedIncomeFaceValue | number: '1.2-2' }}</td>
+          <td class="text-right">{{ s.fixedIncomeAccruedInterest | number: '1.2-2' }}</td>
+          <td class="text-right">{{ s.fixedIncomeValue | number: '1.2-2' }}</td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="6">No fixed income holdings.</td></tr></ng-template>
+    </p-table>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card">
+        <div class="card-title">Cash & Settlement</div>
+        <div class="detail-grid">
+          <div><div class="label">Ledger balance</div><div class="value">{{ s.cashBalance | number: '1.2-2' }}</div></div>
+          <div><div class="label">Purchases awaiting settlement</div><div class="value">{{ s.pendingSettlement | number: '1.2-2' }}</div></div>
+          <div><div class="label">Available after settlement</div><div class="value">{{ s.availableAfterSettlement | number: '1.2-2' }}</div></div>
+        </div>
+        <div class="table-toolbar mt">
+          <div class="section-title">Recent cash movements</div>
+          <p-button label="Print all cash transactions" icon="pi pi-print" [text]="true" size="small" [disabled]="!data.cashTransactionCount" (onClick)="printCash()" />
+        </div>
+        <p-table [value]="data.recentCash" size="small">
+          <ng-template #header><tr><th>Date</th><th>Description</th><th class="text-right">Amount</th></tr></ng-template>
+          <ng-template #body let-c>
+            <tr><td>{{ c.transDate | date: 'dd/MM/yyyy' }}</td><td>{{ c.description }}</td><td class="text-right">{{ c.amount | number: '1.2-2' }}</td></tr>
+          </ng-template>
+          <ng-template #emptymessage><tr><td colspan="3">No cash movements.</td></tr></ng-template>
+        </p-table>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card">
+        <div class="card-title">Investor & Settlement Bank</div>
+        @if (data.investor) {
+          <div class="strong">{{ data.investor.displayName }}</div>
+          <div class="muted small">{{ data.investor.mobilePhone || '-' }} · {{ data.investor.emailAddress || '-' }}</div>
+          <div class="small">{{ data.investor.postalAddress }}</div>
+        } @else {
+          <p class="muted">No principal investor on this account.</p>
+        }
+        <p-table [value]="data.bankAccounts" size="small" styleClass="mt">
+          <ng-template #header><tr><th>Bank</th><th>Account</th></tr></ng-template>
+          <ng-template #body let-b>
+            <tr><td>{{ b.bankName }}<div class="muted small">{{ b.branchName }}</div></td><td>{{ b.accountNo }}<div class="muted small">{{ b.accountName }}</div></td></tr>
+          </ng-template>
+          <ng-template #emptymessage><tr><td colspan="2">No bank account on file.</td></tr></ng-template>
+        </p-table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Trade History</div>
+    <div class="filter-bar">
+      <div class="field">
+        <label class="field-label">Side</label>
+        <p-select [(ngModel)]="buySell" [options]="sides" optionLabel="itemName" optionValue="id" placeholder="All" [showClear]="true" appendTo="body" />
+      </div>
+      <div class="field">
+        <label class="field-label">Stock</label>
+        <p-select [(ngModel)]="stockId" [options]="stocks" optionLabel="itemName" optionValue="id" placeholder="All" [showClear]="true" [filter]="true" appendTo="body" />
+      </div>
+      <div class="field">
+        <label class="field-label">From</label>
+        <input type="date" pInputText [(ngModel)]="fromDate" />
+      </div>
+      <div class="field">
+        <label class="field-label">To</label>
+        <input type="date" pInputText [(ngModel)]="toDate" />
+      </div>
+      <p-button label="Search" icon="pi pi-search" (onClick)="loadTrades()" />
+      <p-button label="Print Trades Report" icon="pi pi-print" severity="secondary" [outlined]="true" (onClick)="printTrades()" />
+      <span class="muted counter">{{ trades?.tradeCount || 0 }} trades · {{ trades?.buys?.count || 0 }} buys · {{ trades?.sells?.count || 0 }} sells</span>
+    </div>
+    <p-table [value]="trades?.trades || []" size="small" [paginator]="true" [rows]="15" [rowsPerPageOptions]="[15, 30, 50, 100]" [loading]="loadingTrades"
+             sortField="valueDate" [sortOrder]="-1">
+      <ng-template #header>
+        <tr>
+          <th pSortableColumn="valueDate">Trade Date <p-sorticon field="valueDate" /></th>
+          <th pSortableColumn="buySell">Buy/Sell <p-sorticon field="buySell" /></th>
+          <th pSortableColumn="stockSymbol">Equity <p-sorticon field="stockSymbol" /></th>
+          <th>Settlement Date</th>
+          <th pSortableColumn="quantity" class="text-right">No. of Shares <p-sorticon field="quantity" /></th>
+          <th pSortableColumn="tradePrice" class="text-right">Unit Price <p-sorticon field="tradePrice" /></th>
+          <th pSortableColumn="consideration" class="text-right">Consideration <p-sorticon field="consideration" /></th>
+          <th class="text-right">Broker Commission</th>
+          <th class="text-right">Other Charges</th>
+          <th pSortableColumn="netConsideration" class="text-right">Net Consideration <p-sorticon field="netConsideration" /></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-t>
+        <tr>
+          <td>{{ t.valueDate | date: 'dd/MM/yyyy' }}</td>
+          <td><p-tag [value]="t.buySellName" [severity]="t.buySell === 'SELL' ? 'danger' : 'success'" /></td>
+          <td [title]="t.stockName">{{ t.stockSymbol }}</td>
+          <td>{{ t.settlementDate | date: 'dd/MM/yyyy' }}</td>
+          <td class="text-right">{{ t.quantity | number: '1.0-0' }}</td>
+          <td class="text-right">{{ t.tradePrice | number: '1.2-4' }}</td>
+          <td class="text-right">{{ t.consideration | number: '1.2-2' }}</td>
+          <td class="text-right">{{ t.brokerageCommission | number: '1.2-2' }}</td>
+          <td class="text-right">{{ t.otherCharges | number: '1.2-2' }}</td>
+          <td class="text-right">{{ t.netConsideration | number: '1.2-2' }}</td>
+        </tr>
+      </ng-template>
+      <ng-template #footer>
+        @for (side of footerSides; track side.label) {
+          <tr>
+            <td colspan="4">{{ side.label }} ({{ side.t?.count || 0 }})</td>
+            <td class="text-right">{{ side.t?.quantity | number: '1.0-0' }}</td>
+            <td></td>
+            <td class="text-right">{{ side.t?.consideration | number: '1.2-2' }}</td>
+            <td class="text-right">{{ side.t?.commission | number: '1.2-2' }}</td>
+            <td class="text-right">{{ side.t?.otherCharges | number: '1.2-2' }}</td>
+            <td class="text-right">{{ side.t?.net | number: '1.2-2' }}</td>
+          </tr>
+        }
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="10">No trades in this period.</td></tr></ng-template>
+    </p-table>
+  </div>
+}
+
+<app-report-viewer [reportData]="reportData" />

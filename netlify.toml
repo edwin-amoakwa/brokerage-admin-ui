@@ -1,0 +1,8 @@
+# Netlify build for the brokerage admin UI. Redirects (the /api proxy and the
+# SPA fallback) live in src/_redirects, the same file laurus-web-app uses.
+[build]
+  command = "npm ci && npx ng build --configuration production"
+  publish = "dist/brokerage-admin-ui/browser"
+
+[build.environment]
+  NODE_VERSION = "22"

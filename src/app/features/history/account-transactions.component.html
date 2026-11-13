@@ -1,0 +1,72 @@
+<app-page-header title="Account Transactions" subtitle="Account statement with opening, running and closing balances">
+  @if (account) {
+    <p-button label="Reload" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="load()" />
+    <p-button label="Print statement" icon="pi pi-print" severity="secondary" [outlined]="true" [loading]="printing" (onClick)="print()" />
+  }
+</app-page-header>
+
+<div class="card">
+  <div class="filter-bar">
+    <div class="field" style="min-width: 320px">
+      <label class="field-label">Account</label>
+      <app-entity-picker kind="account" [value]="account" (selected)="selectAccount($event)" buttonLabel="Find account" />
+    </div>
+    <div class="field">
+      <label class="field-label">From</label>
+      <input type="date" pInputText [(ngModel)]="fromDate" />
+    </div>
+    <div class="field">
+      <label class="field-label">To</label>
+      <input type="date" pInputText [(ngModel)]="toDate" />
+    </div>
+    <p-button label="Search" icon="pi pi-search" [disabled]="!account" (onClick)="load()" [loading]="loading" />
+    @if (fromDate || toDate) {
+      <p-button label="Whole history" severity="secondary" [text]="true" (onClick)="clearPeriod()" />
+    }
+  </div>
+</div>
+
+@if (!account) {
+  <div class="card muted">Choose an account to see its statement.</div>
+} @else if (statement) {
+  <app-stat-tiles [tiles]="tiles" />
+  <div class="card">
+    <div class="table-toolbar">
+      <input pInputText [(ngModel)]="text" placeholder="Description or reference" />
+      <span class="muted">{{ periodLabel }}</span>
+    </div>
+    <p-table [value]="visibleRows" dataKey="id" [paginator]="true" [rows]="25" [rowsPerPageOptions]="[25, 50, 100, 200]" [loading]="loading" size="small">
+      <ng-template #header>
+        @if (statement.periodApplied) {
+          <tr><th colspan="6">Balance brought forward</th><th class="text-right">{{ statement.openingBalance | number: '1.2-2' }}</th></tr>
+        }
+        <tr>
+          <th>Date</th><th>Description</th><th>Portfolio</th><th>Source</th>
+          <th class="text-right">Credit</th><th class="text-right">Debit</th><th class="text-right">Balance</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row>
+        <tr>
+          <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ row.description }}<div class="muted small">Ref {{ row.transaction }}</div></td>
+          <td>{{ row.portfolioName }}</td>
+          <td>{{ row.sourceDataName }}</td>
+          <td class="text-right">{{ row.credit ? (row.credit | number: '1.2-2') : '' }}</td>
+          <td class="text-right">{{ row.debit ? (row.debit | number: '1.2-2') : '' }}</td>
+          <td class="text-right">{{ row.runningBalance | number: '1.2-2' }}</td>
+        </tr>
+      </ng-template>
+      <ng-template #footer>
+        <tr>
+          <td colspan="4">{{ statement.transactionCount }} transaction(s)</td>
+          <td class="text-right">{{ statement.totalCredit | number: '1.2-2' }}</td>
+          <td class="text-right">{{ statement.totalDebit | number: '1.2-2' }}</td>
+          <td class="text-right">{{ statement.closingBalance | number: '1.2-2' }}</td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="7">No transactions for this period.</td></tr></ng-template>
+    </p-table>
+  </div>
+}
+
+<app-report-viewer [reportData]="reportData" />

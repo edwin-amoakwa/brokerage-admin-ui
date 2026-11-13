@@ -1,0 +1,38 @@
+<app-page-header title="Investor Risk Assessment" subtitle="Capture an investor's questionnaire answers; the total score sets the risk level" />
+
+<div class="card">
+  <label class="field-label">Investor</label>
+  <app-entity-picker kind="investor" [value]="picked" (selected)="select($event)" />
+</div>
+
+@if (investor) {
+  <div class="card">
+    <div class="card-title">{{ investor.displayName }}</div>
+    <app-investor-detail [investor]="investor" mode="summary" />
+  </div>
+}
+
+@if (view) {
+  <app-stat-tiles [tiles]="tiles" />
+  <div class="card">
+    <div class="card-title">Questionnaire</div>
+    @for (q of view.questions; track q.id; let i = $index) {
+      <div class="question">
+        <div class="q-text">{{ i + 1 }}. {{ q.question }}</div>
+        <div class="q-row">
+          <p-select [(ngModel)]="answers[q.id]" [options]="q.answers" optionLabel="answerDescription" optionValue="id"
+                    placeholder="Unanswered" [showClear]="true" class="q-select" appendTo="body" />
+          @if (scoreOf(q) !== null) { <span class="muted small">Score {{ scoreOf(q) }}</span> }
+        </div>
+      </div>
+    } @empty {
+      <p class="muted">No risk assessment questions are set up (System Admin, Risk Assessment Questions).</p>
+    }
+    @if (view.questions.length) {
+      <div class="form-actions">
+        <p-button label="Reset" severity="secondary" [outlined]="true" (onClick)="resetAnswers()" />
+        <p-button label="Save Answers" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+      </div>
+    }
+  </div>
+}

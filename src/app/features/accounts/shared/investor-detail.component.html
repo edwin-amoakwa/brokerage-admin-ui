@@ -1,0 +1,38 @@
+@if (investor) {
+  @if (showHeader) {
+    <div class="inv-head">
+      @if (investor.profileImage) {
+        <img [src]="investor.profileImage" alt="" class="inv-photo" />
+      } @else {
+        <span class="avatar">{{ investor.initials }}</span>
+      }
+      <div>
+        <div class="inv-name">{{ investor.displayName }}</div>
+        <div class="muted small">{{ investor.investorCode }} · {{ investor.emailAddress || 'No email on file' }}</div>
+      </div>
+      <p-tag [value]="investor.status" [severity]="severity(investor.statusStyle)" />
+    </div>
+  }
+  @for (group of groups; track $index) {
+    @if (!group.when || group.when(investor)) {
+      @if (group.title) {
+        <div class="section-title">{{ group.title }}</div>
+      }
+      <div class="detail-grid">
+        @for (f of group.fields; track $index) {
+          <div>
+            <div class="label">{{ f.label }}</div>
+            <div class="value">
+              @switch (f.type) {
+                @case ('date') { {{ (investor[f.key] | date: 'dd/MM/yyyy') || '-' }} }
+                @case ('bool') { {{ investor[f.key] ? 'Yes' : 'No' }} }
+                @case ('money') { {{ investor[f.key] | number: '1.2-2' }} }
+                @default { {{ investor[f.key] || '-' }} }
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+}

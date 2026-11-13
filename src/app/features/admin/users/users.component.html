@@ -1,0 +1,79 @@
+<app-page-header title="User Accounts" subtitle="Back-office staff who can sign in to this console">
+  <p-button label="Add user" icon="pi pi-plus" (onClick)="create()" />
+</app-page-header>
+
+<div class="card">
+  <div class="table-toolbar">
+    <input pInputText [(ngModel)]="keyword" placeholder="Search name or email" (keyup.enter)="reload()" />
+    <p-button label="Search" icon="pi pi-search" severity="secondary" [outlined]="true" (onClick)="reload()" />
+    <span class="muted">{{ total }} user(s)</span>
+  </div>
+  <p-table [value]="rows" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="20" [totalRecords]="total" [loading]="loading" size="small" [first]="first">
+    <ng-template #header>
+      <tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Status</th><th class="actions-col"></th></tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr>
+        <td>{{ row.accountName }}</td>
+        <td>{{ row.emailAddress }}</td>
+        <td>{{ row.phoneNo }}</td>
+        <td>{{ row.roleName }}</td>
+        <td><p-tag [value]="row.accountStatusName" [severity]="row.accountStatus === 'ACTIVE' ? 'success' : 'secondary'" /></td>
+        <td class="actions-col">
+          <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="edit(row)" ariaLabel="Edit" />
+          <p-button icon="pi pi-key" [text]="true" size="small" (onClick)="openPassword(row)" ariaLabel="Set password" />
+          <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="remove(row)" ariaLabel="Delete" />
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage><tr><td colspan="6">No users found.</td></tr></ng-template>
+  </p-table>
+</div>
+
+<p-dialog [header]="record?.id ? 'Edit user' : 'New user'" [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '640px', maxWidth: '96vw' }" appendTo="body">
+  @if (record) {
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="field-label">Account name<span class="req">*</span></label>
+        <input pInputText [(ngModel)]="record.accountName" class="w-full" />
+      </div>
+      <div class="col-md-6">
+        <label class="field-label">Email address<span class="req">*</span></label>
+        <input pInputText type="email" [(ngModel)]="record.emailAddress" class="w-full" />
+      </div>
+      <div class="col-md-6">
+        <label class="field-label">Phone</label>
+        <input pInputText [(ngModel)]="record.phoneNo" class="w-full" />
+      </div>
+      <div class="col-md-6">
+        <label class="field-label">Status</label>
+        <p-select [(ngModel)]="record.accountStatus" [options]="statuses" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" />
+      </div>
+      <div class="col-md-12">
+        <label class="field-label">Role</label>
+        <p-select [(ngModel)]="record.roleId" [options]="roles" optionLabel="itemName" optionValue="id" [showClear]="true"
+                  placeholder="Administrator (all pages)" class="w-full" appendTo="body" />
+        <small class="muted">With no role the user can open every page, as in the old console.</small>
+      </div>
+      @if (!record.id) {
+        <div class="col-md-12">
+          <label class="field-label">Password<span class="req">*</span></label>
+          <p-password [(ngModel)]="record.password" [toggleMask]="true" styleClass="w-full" inputStyleClass="w-full" appendTo="body" />
+        </div>
+      }
+    </div>
+  }
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="dialogVisible = false" />
+    <p-button label="Save" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+  </ng-template>
+</p-dialog>
+
+<p-dialog header="Set password" [(visible)]="passwordVisible" [modal]="true" [style]="{ width: '420px' }" appendTo="body">
+  <p class="muted">Sets a new password for {{ passwordUser?.accountName }} and signs them out everywhere.</p>
+  <p-password [(ngModel)]="newPassword" [toggleMask]="true" styleClass="w-full" inputStyleClass="w-full" appendTo="body" />
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="passwordVisible = false" />
+    <p-button label="Set password" icon="pi pi-key" (onClick)="savePassword()" />
+  </ng-template>
+</p-dialog>

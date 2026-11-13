@@ -1,0 +1,47 @@
+<app-page-header title="Cash Transaction History" subtitle="Cash movements by account and value date">
+  <p-button label="Print" icon="pi pi-print" severity="secondary" [outlined]="true" [loading]="printing" (onClick)="print()" />
+</app-page-header>
+
+<div class="card">
+  <div class="filter-bar">
+    <div class="field" style="min-width: 320px">
+      <label class="field-label">Account (optional)</label>
+      <app-entity-picker kind="account" [value]="account" (selected)="account = $event; reload()" buttonLabel="Find account" placeholder="All accounts" />
+    </div>
+    <div class="field">
+      <label class="field-label">From</label>
+      <input type="date" pInputText [(ngModel)]="fromDate" />
+    </div>
+    <div class="field">
+      <label class="field-label">To</label>
+      <input type="date" pInputText [(ngModel)]="toDate" />
+    </div>
+    <p-button label="Search" icon="pi pi-search" (onClick)="reload()" />
+    <span class="muted">{{ total }} transaction(s)</span>
+  </div>
+
+  <p-table [value]="rows" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="20" [rowsPerPageOptions]="[20, 50, 100]"
+           [totalRecords]="total" [loading]="loading" size="small" [first]="first" dataKey="id">
+    <ng-template #header>
+      <tr>
+        <th>Date</th><th>Account</th><th>Bank account</th><th>Description</th><th>Debit/Credit</th>
+        <th class="text-right">Debit</th><th class="text-right">Credit</th><th>Status</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr>
+        <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+        <td>{{ row.accountName }}<div class="muted small">{{ row.accountCode }}</div></td>
+        <td>{{ row.bankAccountName }}</td>
+        <td>{{ row.description }}@if (row.tranRefNo) {<div class="muted small">{{ row.tranRefNo }}</div>}</td>
+        <td>{{ row.debitCreditName }}</td>
+        <td class="text-right">{{ row.debit ? (row.debit | number: '1.2-2') : '' }}</td>
+        <td class="text-right">{{ row.credit ? (row.credit | number: '1.2-2') : '' }}</td>
+        <td><p-tag [value]="row.paymentStatusName" [severity]="severity(row)" /></td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage><tr><td colspan="8">No cash transactions found.</td></tr></ng-template>
+  </p-table>
+</div>
+
+<app-report-viewer [reportData]="reportData" />

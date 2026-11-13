@@ -1,0 +1,39 @@
+<app-page-header title="Upload Stock Orders" subtitle="Import orders, executions and cash transactions from Excel" />
+
+<div class="card">
+  <div class="table-toolbar">
+    <input type="file" accept=".xls,.xlsx" (change)="pick($event)" />
+    <p-button label="Upload" icon="pi pi-upload" [disabled]="!upload" [loading]="busy" (onClick)="preview()" />
+    <p-button label="Save" icon="pi pi-save" [disabled]="!importable || saved" [loading]="busy" (onClick)="save()" />
+    <span class="muted">{{ rows.length }} row(s) · {{ importable }} to import · {{ errors }} with problems</span>
+  </div>
+  <p class="muted small">
+    Columns used: A order id, B value date, C investor id, D side (S sell / P buy), E stock id, G quantity, I price, K message,
+    L type (CANCEL / ORDER / TRADE), O created date. The first row is a header. ORDER rows are skipped.
+  </p>
+  <p-table [value]="rows" size="small" [paginator]="rows.length > 20" [rows]="20">
+    <ng-template #header>
+      <tr><th>Row</th><th>Order No</th><th>Date</th><th>Stock</th><th>Account</th><th>Side</th><th>Type</th>
+        <th class="text-right">Order Qty</th><th class="text-right">Order Price</th><th class="text-right">Trade Qty</th>
+        <th class="text-right">Trade Amount</th><th>Status</th><th>Result</th></tr>
+    </ng-template>
+    <ng-template #body let-r>
+      <tr>
+        <td>{{ r.rowNo }}</td>
+        <td>{{ r.orderNo }}</td>
+        <td>{{ r.valueDate | date: 'dd/MM/yyyy' }}</td>
+        <td>{{ r.stockSymbol }}</td>
+        <td>{{ r.accountName }}</td>
+        <td>{{ r.buySellName }}</td>
+        <td>{{ r.transactionType }}</td>
+        <td class="text-right">{{ r.orderQuantity | number: '1.0-0' }}</td>
+        <td class="text-right">{{ r.orderPrice | number: '1.2-4' }}</td>
+        <td class="text-right">{{ r.qtyExecuted | number: '1.0-0' }}</td>
+        <td class="text-right">{{ r.consideration | number: '1.2-2' }}</td>
+        <td>{{ r.orderStatusName }}</td>
+        <td [class.tag-bad]="r.error">{{ r.error || r.action }}</td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage><tr><td colspan="13">Choose an Excel file and press Upload to preview it.</td></tr></ng-template>
+  </p-table>
+</div>

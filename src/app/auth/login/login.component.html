@@ -1,0 +1,102 @@
+<div class="login-screen">
+  <div class="screen">
+    <!-- LEFT : IDENTITY -->
+    <div class="pane-ops">
+      <div class="brand">
+        <img src="assets/images/laurus-africa-logo.png" alt="Laurus Africa" />
+      </div>
+
+      <div class="ops-body">
+        <p class="ops-lede">Dealing, settlement and the investor register.</p>
+        <p class="ops-sub">Internal system for licensed Laurus Africa staff.</p>
+
+        <div class="notice">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+            <path d="M12 3 4 7v6c0 4.4 3.4 7.4 8 8 4.6-.6 8-3.6 8-8V7l-8-4Z" />
+          </svg>
+          <div>
+            Access is restricted to authorised users. Sign-ins and the actions taken afterwards are recorded against your account.
+          </div>
+        </div>
+      </div>
+
+      <div class="ops-foot">
+        <span>PRIME BROKERAGE</span>
+        <span>ACCRA &#183; GMT</span>
+      </div>
+    </div>
+
+    <!-- RIGHT : THE SIGN IN -->
+    <div class="pane-form">
+      <div class="form-head">
+        <span class="env" [class.env-test]="!production"><i></i>{{ production ? 'Production' : 'Development' }}</span>
+      </div>
+
+      <div class="form-body">
+        <h1>Sign in</h1>
+        <p class="sub">Use your Laurus Africa network account.</p>
+
+        @if (expired && !error) {
+          <div class="login-message warn" role="status">Your session has ended. Please sign in again.</div>
+        }
+        @if (error) {
+          <div class="login-message" role="alert">{{ error }}</div>
+        }
+
+        <form (ngSubmit)="submit()" novalidate>
+          <div class="fields">
+            <div class="field">
+              <label for="username">Username</label>
+              <div class="control">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" />
+                </svg>
+                <input id="username" name="username" type="text" [(ngModel)]="email" autocomplete="username"
+                       placeholder="you@laurusafrica.com" autofocus />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="password">Password</label>
+              <div class="control">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+                  <rect x="4" y="10" width="16" height="11" rx="2" />
+                  <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                </svg>
+                <input #pw id="password" name="password" [type]="showPassword ? 'text' : 'password'" [(ngModel)]="password"
+                       autocomplete="current-password" placeholder="Password"
+                       (keydown)="checkCaps($event)" (keyup)="checkCaps($event)" (blur)="capsOn = false" />
+                <button class="reveal" type="button" [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+                        (click)="showPassword = !showPassword; pw.focus()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+                    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
+              </div>
+              @if (capsOn) {
+                <p class="caps-hint" aria-live="polite">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 4 4 12h4v4h8v-4h4L12 4Z" />
+                    <path d="M8 20h8" />
+                  </svg>
+                  <kbd>Caps Lock</kbd> is on
+                </p>
+              }
+            </div>
+          </div>
+
+          <button class="signin" type="submit" [disabled]="loading">{{ loading ? 'Signing in…' : 'Sign in' }}</button>
+        </form>
+
+        <p class="helprow">Password resets and account unlocks are handled by your system administrator.</p>
+      </div>
+
+      <div class="form-foot">
+        <span>&#169; Stately Technologies</span>
+        <span class="mono">AUTHORISED USERS ONLY</span>
+      </div>
+    </div>
+  </div>
+</div>

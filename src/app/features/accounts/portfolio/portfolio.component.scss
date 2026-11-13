@@ -1,0 +1,14 @@
+.identity { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.id-main { flex: 1; min-width: 200px; }
+.id-inv { text-align: right; }
+.strong { font-weight: 600; }
+.up { color: var(--app-ok); }
+.down { color: var(--app-bad); }
+.alloc-bar { display: flex; height: 10px; border-radius: 6px; overflow: hidden; background: var(--app-border); margin: 4px 0 6px; }
+.alloc.eq, .dot.eq { background: #4f7cff; }
+.alloc.fi, .dot.fi { background: #18a07a; }
+.alloc.cash, .dot.cash { background: #e3a008; }
+.alloc-legend { display: flex; gap: 16px; margin-bottom: 10px; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
+.mt { margin-top: 12px; }
+.counter { margin-left: auto; }

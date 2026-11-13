@@ -1,0 +1,79 @@
+<app-page-header [title]="bonus ? 'Bonus Processing' : 'Dividend Processing'"
+                 [subtitle]="bonus ? 'Credit bonus shares to the accounts holding the stock' : 'Pay dividends to the accounts holding the stock'">
+  <p-button label="Load" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="load()" />
+  <p-button label="Process All" icon="pi pi-cog" [disabled]="!rows.length" [loading]="busy" (onClick)="processAll()" />
+</app-page-header>
+
+<app-stat-tiles [tiles]="tiles" />
+
+@if (preview) {
+  <div class="card">
+    <div class="table-toolbar">
+      <div class="card-title">Preview: {{ subject.stockSymbol }} {{ subject.stockName }}</div>
+      <span class="muted"></span>
+      <p-button label="Close" severity="secondary" [outlined]="true" (onClick)="preview = null" />
+      <p-button [label]="bonus ? 'Process This Bonus' : 'Process This Dividend'" icon="pi pi-cog" [loading]="busy" (onClick)="process(subject)" />
+    </div>
+    <app-stat-tiles [tiles]="previewTiles" />
+    <p class="muted small">
+      @if (bonus) { Holdings are booked, authorised trades up to the qualification date. Fractions of a bonus share are dropped. }
+      @else { Holdings are booked, authorised trades before the ex-date. Amounts are gross. }
+    </p>
+    <p-table [value]="preview.rows" size="small" [paginator]="preview.rows.length > 20" [rows]="20">
+      <ng-template #header>
+        <tr><th>Account</th><th>Account No</th><th class="text-right">Shares Held</th>
+          <th class="text-right">{{ bonus ? 'Bonus Shares' : 'Gross Amount' }}</th></tr>
+      </ng-template>
+      <ng-template #body let-r>
+        <tr>
+          <td>{{ r.accountName }}</td>
+          <td>{{ r.accountCode }}</td>
+          <td class="text-right">{{ r.shares | number: '1.0-0' }}</td>
+          <td class="text-right">
+            @if (bonus) { {{ r.bonusShares | number: '1.0-0' }} } @else { {{ r.grossAmount | number: '1.2-2' }} }
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="4">No account holds this stock.</td></tr></ng-template>
+    </p-table>
+  </div>
+}
+
+<div class="card">
+  <div class="table-toolbar">
+    <input pInputText [(ngModel)]="search" placeholder="Stock symbol or name" />
+    <span class="muted">{{ filtered().length }} unprocessed</span>
+  </div>
+  <p-table [value]="filtered()" size="small" [paginator]="rows.length > 10" [rows]="10">
+    <ng-template #header>
+      <tr>
+        <th>Stock</th>
+        @if (bonus) { <th>Ratio</th><th>Declare Date</th><th>Qualification Date</th><th>Crediting Date</th> }
+        @else { <th class="text-right">Amount Per Share</th><th>Declare Date</th><th>Ex Date</th><th>Payment Date</th> }
+        <th>Status</th><th class="actions-col"></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-r>
+      <tr>
+        <td><strong>{{ r.stockSymbol }}</strong> <span class="muted">{{ r.stockName }}</span></td>
+        @if (bonus) {
+          <td>{{ r.ratio }}</td>
+          <td>{{ r.declareDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ r.qualificationDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ r.creditingDate | date: 'dd/MM/yyyy' }}</td>
+        } @else {
+          <td class="text-right">{{ r.amountPerShare | number: '1.2-4' }}</td>
+          <td>{{ r.declareDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ r.exDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ r.paymentDate | date: 'dd/MM/yyyy' }}</td>
+        }
+        <td><p-tag [value]="r.statusName" severity="warn" /></td>
+        <td class="actions-col">
+          <p-button label="Preview" [text]="true" size="small" (onClick)="showPreview(r)" />
+          <p-button label="Process" [text]="true" size="small" (onClick)="process(r)" />
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage><tr><td colspan="7">Nothing awaiting processing.</td></tr></ng-template>
+  </p-table>
+</div>

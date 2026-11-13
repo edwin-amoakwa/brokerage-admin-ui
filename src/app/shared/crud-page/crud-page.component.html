@@ -1,0 +1,97 @@
+<app-page-header [title]="config.title" [subtitle]="config.subtitle || ''">
+  <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="reload()" />
+  <p-button [label]="'Add ' + config.noun" icon="pi pi-plus" (onClick)="create()" />
+</app-page-header>
+
+<div class="card">
+  <div class="table-toolbar">
+    <span class="p-input-icon-left search-box">
+      <input pInputText [(ngModel)]="keyword" placeholder="Search" (keyup.enter)="reload()" />
+    </span>
+    <span class="muted">{{ total }} record(s)</span>
+  </div>
+  <p-table [value]="rows" [lazy]="paginated" (onLazyLoad)="load($event)" [paginator]="true" [rows]="20" [totalRecords]="total"
+           [loading]="loading" dataKey="id" size="small" [first]="first" [rowsPerPageOptions]="[20, 50, 100]">
+    <ng-template #header>
+      <tr>
+        @for (c of config.columns; track c.field) {
+          <th>{{ c.header }}</th>
+        }
+        <th class="actions-col"></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr>
+        @for (c of config.columns; track c.field) {
+          <td [class.text-right]="c.type === 'money' || c.type === 'number'">
+            @switch (c.type) {
+              @case ('money') { {{ row[c.field] | number: '1.2-2' }} }
+              @case ('number') { {{ row[c.field] | number }} }
+              @case ('date') { {{ row[c.field] | date: 'dd/MM/yyyy' }} }
+              @case ('boolean') { <p-tag [value]="row[c.field] ? 'Yes' : 'No'" [severity]="row[c.field] ? 'success' : 'secondary'" /> }
+              @default { {{ row[c.field] }} }
+            }
+          </td>
+        }
+        <td class="actions-col">
+          <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="edit(row)" ariaLabel="Edit" />
+          @if (config.canDelete !== false) {
+            <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="remove(row)" ariaLabel="Delete" />
+          }
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr><td [attr.colspan]="config.columns.length + 1">No records found.</td></tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog [header]="(record?.id ? 'Edit ' : 'New ') + config.noun" [(visible)]="dialogVisible" [modal]="true"
+          [style]="{ width: '720px', maxWidth: '96vw' }" appendTo="body">
+  @if (record) {
+    <div class="row g-3">
+      @for (f of config.fields; track f.key) {
+        <div [class]="'col-md-' + (f.col || 6)">
+          @if (f.type === 'checkbox') {
+            <div class="check-field">
+              <p-checkbox [(ngModel)]="record[f.key]" [binary]="true" [inputId]="'f-' + f.key" />
+              <label [for]="'f-' + f.key">{{ f.label }}</label>
+            </div>
+          } @else {
+            <label class="field-label" [for]="'f-' + f.key">{{ f.label }}@if (f.required) {<span class="req">*</span>}</label>
+            @switch (f.type) {
+              @case ('number') {
+                <p-inputnumber [(ngModel)]="record[f.key]" [inputId]="'f-' + f.key" [useGrouping]="false" class="w-full" [disabled]="locked(f)" />
+              }
+              @case ('decimal') {
+                <p-inputnumber [(ngModel)]="record[f.key]" [inputId]="'f-' + f.key" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="6" class="w-full" [disabled]="locked(f)" />
+              }
+              @case ('select') {
+                <p-select [(ngModel)]="record[f.key]" [options]="options[f.key] || []" optionLabel="itemName" optionValue="id"
+                          [filter]="(options[f.key] || []).length > 8" [showClear]="!f.required" placeholder="Select" class="w-full"
+                          [inputId]="'f-' + f.key" appendTo="body" [disabled]="locked(f)" />
+              }
+              @case ('date') {
+                <input type="date" pInputText [(ngModel)]="record[f.key]" [id]="'f-' + f.key" class="w-full" [disabled]="locked(f)" />
+              }
+              @case ('textarea') {
+                <textarea pTextarea [(ngModel)]="record[f.key]" [id]="'f-' + f.key" rows="3" class="w-full" [disabled]="locked(f)"></textarea>
+              }
+              @default {
+                <input pInputText [(ngModel)]="record[f.key]" [id]="'f-' + f.key" class="w-full" [disabled]="locked(f)" />
+              }
+            }
+            @if (f.hint) {
+              <small class="muted">{{ f.hint }}</small>
+            }
+          }
+        </div>
+      }
+    </div>
+  }
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="dialogVisible = false" />
+    <p-button label="Save" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+  </ng-template>
+</p-dialog>

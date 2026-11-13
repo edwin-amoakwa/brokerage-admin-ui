@@ -1,0 +1,119 @@
+@if (!selectedDate) {
+  <app-page-header title="Fixed Income Transactions" subtitle="Capture fixed income trades for a transaction date" />
+  <div class="card narrow">
+    <label class="field-label">Transaction date</label>
+    <input type="date" pInputText [(ngModel)]="pickDate" class="w-full" />
+    <div class="form-actions">
+      <p-button label="Capture transactions" icon="pi pi-arrow-right" (onClick)="start()" />
+    </div>
+  </div>
+} @else {
+  <app-page-header title="Fixed Income Transactions" [subtitle]="'Transaction date ' + (selectedDate | date: 'dd/MM/yyyy')">
+    <p-button label="Change date" icon="pi pi-calendar" severity="secondary" [outlined]="true" (onClick)="resetPage()" />
+    @if (!tx) {
+      <p-button label="Add new transaction" icon="pi pi-plus" (onClick)="newTransaction()" />
+    }
+  </app-page-header>
+
+  @if (tx) {
+    <div class="card">
+      <div class="card-title">{{ tx.id ? 'Edit transaction' : 'New transaction' }}</div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="field-label">Account<span class="req">*</span></label>
+          <app-entity-picker kind="account" [value]="account" (selected)="selectAccount($event)" buttonLabel="Search accounts" placeholder="Select an account" />
+        </div>
+        <div class="col-md-6">
+          <label class="field-label">Security<span class="req">*</span></label>
+          <app-entity-picker kind="fixed-income" [value]="security" (selected)="security = $event" buttonLabel="Find" placeholder="Select the security" />
+        </div>
+        <div class="col-md-3">
+          <label class="field-label">Transaction date</label>
+          <input pInputText [value]="selectedDate | date: 'dd/MM/yyyy'" class="w-full" disabled />
+        </div>
+        <div class="col-md-3">
+          <label class="field-label">Issue date</label>
+          <input pInputText [value]="(security?.issueDate | date: 'dd/MM/yyyy') || ''" class="w-full" disabled />
+        </div>
+        <div class="col-md-3">
+          <label class="field-label">Market<span class="req">*</span></label>
+          <p-select [(ngModel)]="tx.market" [options]="markets" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" />
+        </div>
+        <div class="col-md-3">
+          <label class="field-label">Currency<span class="req">*</span></label>
+          <p-select [(ngModel)]="tx.currency" [options]="currencies" optionLabel="itemName" optionValue="id" [filter]="true" class="w-full" appendTo="body" />
+        </div>
+        @if (tx.market === 'SECONDARY') {
+          <div class="col-md-4">
+            <label class="field-label">Face value<span class="req">*</span></label>
+            <p-inputnumber [(ngModel)]="tx.faceValue" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="5" class="w-full" inputStyleClass="w-full" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">YTM %<span class="req">*</span></label>
+            <p-inputnumber [(ngModel)]="tx.ytm" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="5" class="w-full" inputStyleClass="w-full" />
+          </div>
+          <div class="col-md-4">
+            <label class="field-label">Price<span class="req">*</span></label>
+            <p-inputnumber [(ngModel)]="tx.price" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="5" class="w-full" inputStyleClass="w-full" />
+          </div>
+        }
+        @if (tx.market === 'TRANSFER') {
+          <div class="col-md-4">
+            <label class="field-label">Transfer date<span class="req">*</span></label>
+            <input type="date" pInputText [(ngModel)]="tx.transferredDate" class="w-full" />
+          </div>
+        }
+        <div class="col-md-4">
+          <label class="field-label">Cost<span class="req">*</span></label>
+          <p-inputnumber [(ngModel)]="tx.cost" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="5" class="w-full" inputStyleClass="w-full" />
+        </div>
+        <div class="col-md-4">
+          <label class="field-label">Scheduled redemption interest amount</label>
+          <p-inputnumber [(ngModel)]="tx.scheduledRedemptionInterestAmount" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="5" class="w-full" inputStyleClass="w-full" />
+        </div>
+        <div class="col-md-4">
+          <label class="field-label">Investment cert no</label>
+          <input pInputText [(ngModel)]="tx.investmentCertNo" class="w-full" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <p-button label="Close" severity="secondary" [text]="true" (onClick)="closeForm()" />
+        <p-button label="Clear" severity="secondary" [outlined]="true" (onClick)="newTransaction(account)" />
+        <p-button label="Save" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+      </div>
+    </div>
+  }
+
+  <div class="card">
+    <div class="table-toolbar">
+      <span class="card-title">{{ tx && account ? 'Transactions of ' + account.displayName + ' on this date' : 'Transactions on this date' }}</span>
+      <span class="muted">{{ visibleRows.length }} transaction(s)</span>
+    </div>
+    <p-table [value]="visibleRows" size="small" [paginator]="visibleRows.length > 15" [rows]="15" dataKey="id">
+      <ng-template #header>
+        <tr>
+          <th>Trans date</th><th>Account</th><th>Security code</th><th>Market</th><th class="text-right">Cost</th><th class="text-right">Face value</th>
+          <th>Maturity date</th><th class="text-right">Maturity value</th><th>Status</th><th class="actions-col"></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row>
+        <tr>
+          <td>{{ row.transDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ row.accountName }}</td>
+          <td>{{ row.fixedIncomeName }}</td>
+          <td>{{ row.market }}</td>
+          <td class="text-right">{{ row.cost | number: '1.2-2' }}</td>
+          <td class="text-right">{{ row.faceValue | number: '1.2-2' }}</td>
+          <td>{{ row.maturityDate | date: 'dd/MM/yyyy' }}</td>
+          <td class="text-right">{{ row.maturityValue | number: '1.2-2' }}</td>
+          <td><p-tag [value]="row.authorised ? 'Authorised' : 'Pending'" [severity]="row.authorised ? 'success' : 'warn'" /></td>
+          <td class="actions-col">
+            <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="edit(row)" [disabled]="row.authorised" ariaLabel="Edit" />
+            <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="remove(row)" [disabled]="row.authorised" ariaLabel="Delete" />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="10">No transactions captured for this date.</td></tr></ng-template>
+    </p-table>
+  </div>
+}

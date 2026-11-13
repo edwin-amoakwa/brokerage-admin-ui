@@ -1,0 +1,116 @@
+<header class="page-head">
+  <div>
+    <div class="muted small">Accounts</div>
+    <h1>Investors</h1>
+  </div>
+  <div class="actions">
+    @if (canUpload) {
+      <p-button label="Upload from Excel" icon="pi pi-upload" severity="secondary" [outlined]="true" (onClick)="showUpload = true" />
+    }
+    <p-button label="Print list" icon="pi pi-print" severity="secondary" [outlined]="true" [loading]="printing" (onClick)="print()" />
+    <p-button label="Add investor" icon="pi pi-plus" (onClick)="create()" />
+  </div>
+</header>
+
+<nav class="status-chips" aria-label="Filter by status">
+  @for (c of statusChips; track c.key) {
+    <button type="button" [class.active]="status === c.key" [attr.aria-pressed]="status === c.key" (click)="setStatus(c.key)">
+      {{ c.label }} <b>{{ (c.count ?? 0) | number }}</b>
+    </button>
+  }
+</nav>
+
+<section class="panel register">
+  <form class="filters" (ngSubmit)="reload()">
+    <div class="field grow">
+      <label for="inv-q">Search</label>
+      <input id="inv-q" name="q" pInputText type="search" [(ngModel)]="keyword" placeholder="Name, code, email, phone or ID number" />
+    </div>
+    <div class="field">
+      <label for="inv-type">Type</label>
+      <p-select inputId="inv-type" name="type" [(ngModel)]="investorType" [options]="types" optionLabel="itemName" optionValue="id"
+                placeholder="All types" [showClear]="true" (onChange)="reload()" appendTo="body" />
+    </div>
+    <div class="field">
+      <label for="inv-flag">Needs attention</label>
+      <p-select inputId="inv-flag" name="flag" [(ngModel)]="flag" [options]="flags" optionLabel="itemName" optionValue="id"
+                placeholder="Any" [showClear]="true" (onChange)="reload()" appendTo="body" />
+    </div>
+    <div class="field">
+      <label for="inv-from">Registered from</label>
+      <input id="inv-from" name="from" pInputText type="date" [(ngModel)]="fromDate" (change)="reload()" />
+    </div>
+    <p-button type="submit" icon="pi pi-search" label="Search" severity="secondary" [outlined]="true" />
+    @if (hasFilters) {
+      <p-button type="button" label="Clear filters" [text]="true" (onClick)="clearFilters()" />
+    }
+  </form>
+
+  <p-table [value]="rows" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 20, 50]"
+           [totalRecords]="total" [loading]="loading" dataKey="id" [first]="first" [rowHover]="true"
+           [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first}–{last} of {totalRecords} investors"
+           [tableStyle]="{ 'min-width': '1100px' }">
+    <ng-template #header>
+      <tr>
+        <th>Investor</th>
+        <th>Contact</th>
+        <th>ID</th>
+        <th>Trading account</th>
+        <th>Registered</th>
+        <th>Status</th>
+        <th>Flags</th>
+        <th class="menu-col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr class="row" (click)="open(row)">
+        <td>
+          <a class="inv" [href]="'/accounts/investors/' + row.id" (click)="$event.preventDefault()">
+            <span class="avatar">{{ row.initials }}</span>
+            <span class="who">
+              <strong>{{ row.displayName }}</strong>
+              <small>{{ row.investorCode || 'No code' }} · {{ row.investorTypeName || '-' }}</small>
+            </span>
+          </a>
+        </td>
+        <td>
+          <div>{{ row.mobilePhone || '-' }}</div>
+          <small class="muted">{{ row.emailAddress }}</small>
+        </td>
+        <td>
+          <div>{{ row.validIdName || '-' }}</div>
+          <small [class]="'id-' + idNote(row).tone">{{ idNote(row).text }}</small>
+        </td>
+        <td>
+          <div class="acct">{{ row.principalAccountCode || 'No account yet' }}</div>
+          <small class="muted">{{ accountNote(row) }}</small>
+        </td>
+        <td class="nowrap">{{ row.registrationDate | date: 'dd MMM y' }}</td>
+        <td><span class="pill" [class]="stage(row).tone">{{ stage(row).label }}</span></td>
+        <td>
+          <div class="chips">
+            @for (f of flagChips(row); track f.label) { <span class="chip" [class]="f.tone">{{ f.label }}</span> }
+          </div>
+        </td>
+        <td class="menu-col">
+          <p-button icon="pi pi-ellipsis-v" [text]="true" [rounded]="true" severity="secondary" size="small"
+                    [ariaLabel]="'More actions for ' + row.displayName" (onClick)="openMenu($event, menu, row)" />
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr><td colspan="8" class="muted empty">No investors match these filters.</td></tr>
+    </ng-template>
+  </p-table>
+</section>
+
+<p-menu #menu [model]="rowMenu" [popup]="true" appendTo="body" />
+
+<app-report-viewer [reportData]="reportData" />
+
+<p-dialog header="Upload Investors" [(visible)]="showUpload" [modal]="true" [draggable]="false" [dismissableMask]="false"
+          [style]="{ width: '1100px' }" [breakpoints]="{ '1199px': '95vw' }" appendTo="body">
+  @if (showUpload) {
+    <app-investor-upload [embedded]="true" (imported)="onImported()" />
+  }
+</p-dialog>

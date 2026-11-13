@@ -1,0 +1,45 @@
+<app-page-header title="Fixed Income Market Prices" subtitle="Fetch prices and yields from the market data service" />
+
+<div class="card">
+  <div class="filter-bar">
+    <div class="field">
+      <label class="field-label">Market date<span class="req">*</span></label>
+      <input type="date" pInputText [(ngModel)]="marketDate" />
+    </div>
+    <p-button label="Fetch" icon="pi pi-cloud-download" [loading]="fetching" (onClick)="fetch()" />
+    @if (prices.length) {
+      <p-button label="Save prices" icon="pi pi-check" severity="success" [loading]="saving" (onClick)="save()" />
+      <span class="muted">{{ prices.length }} price(s), {{ matchedCount }} matched to a security, {{ existingCount }} already saved</span>
+    }
+  </div>
+
+  @if (fetched) {
+    <p-table [value]="prices" size="small" [paginator]="prices.length > 10" [rows]="10">
+      <ng-template #header>
+        <tr>
+          <th>Market date</th><th>ISIN</th><th>Issuer code</th><th>Maturity date</th><th class="text-right">Market price</th>
+          <th class="text-right">Yield %</th><th>Security</th><th></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row>
+        <tr>
+          <td>{{ row.marketDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ row.isin }}</td>
+          <td>{{ row.issuerCode }}</td>
+          <td>{{ row.maturityDate | date: 'dd/MM/yyyy' }}</td>
+          <td class="text-right">{{ row.marketPrice | number: '1.2-5' }}</td>
+          <td class="text-right">{{ row.yield | number: '1.2-5' }}</td>
+          <td>
+            @if (row.fixedIncomeName) {
+              {{ row.fixedIncomeName }}
+            } @else {
+              <span class="muted">No match</span>
+            }
+          </td>
+          <td>@if (row.existing) { <p-tag value="Will update" severity="info" /> } @else { <p-tag value="New" severity="success" /> }</td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="8">No fixed income prices found for the selected date.</td></tr></ng-template>
+    </p-table>
+  }
+</div>

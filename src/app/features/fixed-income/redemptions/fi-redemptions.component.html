@@ -1,0 +1,123 @@
+<app-page-header title="Fixed Income Redemption" subtitle="Early redemption of principal with accrued interest" />
+
+<div class="card">
+  <div class="filter-bar">
+    <div class="field" style="min-width: 320px">
+      <label class="field-label">Account</label>
+      <app-entity-picker kind="account" [value]="account" (selected)="selectAccount($event)" buttonLabel="Find" placeholder="Select an account" />
+    </div>
+    @if (!holding) {
+      <div class="field">
+        <label class="field-label">From</label>
+        <input type="date" pInputText [(ngModel)]="fromDate" />
+      </div>
+      <div class="field">
+        <label class="field-label">To</label>
+        <input type="date" pInputText [(ngModel)]="toDate" />
+      </div>
+      <p-button label="Load" icon="pi pi-refresh" severity="secondary" [outlined]="true" [disabled]="!account" (onClick)="loadHoldings()" />
+    }
+  </div>
+</div>
+
+@if (account && !holding) {
+  <div class="card">
+    <div class="card-title">Authorised holdings</div>
+    <p-table [value]="holdings" size="small" [paginator]="holdings.length > 10" [rows]="10" dataKey="id">
+      <ng-template #header>
+        <tr>
+          <th>Type</th><th>Instrument</th><th>Trans date</th><th class="text-right">Rate %</th><th class="text-right">Face value</th>
+          <th class="text-right">Outstanding</th><th class="text-right">Maturity value</th><th>Maturity date</th><th class="actions-col"></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row>
+        <tr>
+          <td>{{ row.assetSubClassName }}</td>
+          <td>{{ row.fixedIncomeName || row.tenorName }}</td>
+          <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+          <td class="text-right">{{ row.rate | number: '1.2-4' }}</td>
+          <td class="text-right">{{ row.faceValue | number: '1.2-2' }}</td>
+          <td class="text-right">{{ row.outstandingFaceValue | number: '1.2-2' }}</td>
+          <td class="text-right">{{ row.maturityValue | number: '1.2-2' }}</td>
+          <td>{{ row.maturityDate | date: 'dd/MM/yyyy' }}</td>
+          <td class="actions-col"><p-button label="Redeem" size="small" [text]="true" icon="pi pi-replay" (onClick)="redeem(row)" /></td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="9">No authorised fixed income holdings for this account.</td></tr></ng-template>
+    </p-table>
+  </div>
+}
+
+@if (holding) {
+  <div class="card">
+    <div class="table-toolbar">
+      <span class="card-title">Redeem {{ holding.fixedIncomeName || holding.tenorName }} ({{ holding.assetSubClassName }})</span>
+      <p-button label="Close" icon="pi pi-times" severity="secondary" [outlined]="true" size="small" (onClick)="closeHolding()" />
+    </div>
+    <div class="detail-grid">
+      <div><div class="label">Trans date</div><div class="value">{{ holding.valueDate | date: 'dd/MM/yyyy' }}</div></div>
+      <div><div class="label">Account</div><div class="value">{{ holding.accountName }}</div></div>
+      <div><div class="label">Market</div><div class="value">{{ holding.market || '-' }}</div></div>
+      <div><div class="label">Cost</div><div class="value">{{ holding.cost | number: '1.2-2' }}</div></div>
+      <div><div class="label">Face value</div><div class="value">{{ holding.faceValue | number: '1.2-2' }}</div></div>
+      <div><div class="label">Outstanding face value</div><div class="value">{{ holding.outstandingFaceValue | number: '1.2-2' }}</div></div>
+      <div><div class="label">Rate %</div><div class="value">{{ holding.rate | number: '1.2-4' }}</div></div>
+      <div><div class="label">Maturity date</div><div class="value">{{ holding.maturityDate | date: 'dd/MM/yyyy' }}</div></div>
+      <div><div class="label">Maturity value</div><div class="value">{{ holding.maturityValue | number: '1.2-2' }}</div></div>
+    </div>
+
+    <div class="section-title">Early redemption</div>
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="field-label">Redemption date<span class="req">*</span></label>
+        <input type="date" pInputText [(ngModel)]="redemptionDate" (ngModelChange)="interest = null" class="w-full" />
+      </div>
+      <div class="col-md-3">
+        <label class="field-label">Principal amount<span class="req">*</span></label>
+        <p-inputnumber [(ngModel)]="amount" (ngModelChange)="interest = null" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" class="w-full" inputStyleClass="w-full" />
+      </div>
+      <div class="col-md-3">
+        <label class="field-label">Interest</label>
+        <input pInputText [value]="interest ? (interest.interest | number: '1.2-2') : ''" class="w-full" disabled />
+        @if (interest) {
+          <small class="muted">{{ interest.days }} days at {{ interest.rate | number: '1.2-4' }}% (ACT/365)</small>
+        }
+      </div>
+      <div class="col-md-3 check-field">
+        <p-button label="Calculate interest" icon="pi pi-calculator" severity="secondary" [outlined]="true" (onClick)="calculate()" />
+      </div>
+    </div>
+    <p-message severity="warn" styleClass="mt-3" text="Saving records the principal and interest rows as authorised straight away (no separate approval step), as the old console did." />
+    <div class="form-actions">
+      <p-button label="Save redemption" icon="pi pi-check" [loading]="saving" [disabled]="!interest" (onClick)="save()" />
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Redemptions</div>
+    <p-table [value]="redemptions" size="small" [paginator]="redemptions.length > 10" [rows]="10" dataKey="id">
+      <ng-template #header>
+        <tr>
+          <th>Redemption date</th><th>Corporate action</th><th>Redemption type</th><th class="text-right">Amount</th>
+          <th>Status</th><th>Authorised by</th><th class="actions-col"></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row>
+        <tr>
+          <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ row.corporateActionTypeName }}</td>
+          <td>{{ row.redemptionTypeName }}</td>
+          <td class="text-right">{{ row.amount | number: '1.2-2' }}</td>
+          <td>{{ row.redemptionStatusName || (row.authorised ? 'Authorised' : '') }}</td>
+          <td>{{ row.authorisedBy }}</td>
+          <td class="actions-col">
+            @if (row.redemptionType === 'UN_SCHEDULED' && row.batch) {
+              <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="removeBatch(row)" ariaLabel="Delete" />
+            }
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="7">No redemptions recorded.</td></tr></ng-template>
+    </p-table>
+  </div>
+}

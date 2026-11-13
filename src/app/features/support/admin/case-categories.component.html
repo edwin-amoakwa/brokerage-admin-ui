@@ -1,0 +1,87 @@
+<app-page-header title="Case Categories" subtitle="What clients raise, how fast the firm promises to respond, and who handles it">
+  <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="load()" />
+  @if (loaded && all.length === 0) {
+    <p-button label="Load standard set" icon="pi pi-download" severity="secondary" (onClick)="loadStandardSet()" />
+  }
+  <p-button label="Add category" icon="pi pi-plus" (onClick)="create()" />
+</app-page-header>
+
+<div class="card">
+  <div class="table-toolbar">
+    <input pInputText [(ngModel)]="keyword" placeholder="Search code or name" />
+    <span class="muted">{{ shown.length }} of {{ all.length }}</span>
+  </div>
+  <p-table [value]="shown" [paginator]="true" [rows]="15" [loading]="loading" size="small">
+    <ng-template #header>
+      <tr><th>Code</th><th>Category</th><th>Default Priority</th><th class="text-right">Acknowledge (h)</th><th class="text-right">Resolve (h)</th><th>Routes To</th><th>Flags</th><th class="actions-col"></th></tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr>
+        <td>{{ row.categoryCode }}</td>
+        <td>{{ row.categoryName }}<div class="small muted">{{ row.parentName ? 'under ' + row.parentName : 'Top level' }}</div></td>
+        <td>{{ row.defaultPriorityName }}</td>
+        <td class="text-right">{{ row.ackHours }}</td>
+        <td class="text-right">{{ row.resolveHours }}</td>
+        <td>{{ row.teamName || 'Unrouted' }}@if (row.escalationTeamName) {<div class="small muted">escalates to {{ row.escalationTeamName }}</div>}</td>
+        <td>
+          @if (row.restricted) { <p-tag value="Restricted" severity="warn" /> }
+          @if (!row.active) { <p-tag value="Inactive" severity="secondary" /> }
+        </td>
+        <td class="actions-col">
+          <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="edit(row)" ariaLabel="Edit" />
+          <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="remove(row)" ariaLabel="Delete" />
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage><tr><td colspan="8">No categories yet. "Load standard set" creates a sensible starting tree.</td></tr></ng-template>
+  </p-table>
+</div>
+
+<p-dialog [header]="record?.id ? 'Edit category' : 'New category'" [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '760px', maxWidth: '96vw' }" appendTo="body">
+  @if (record) {
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="field-label">Code<span class="req">*</span></label>
+        <input pInputText [(ngModel)]="record.categoryCode" class="w-full" />
+      </div>
+      <div class="col-md-8">
+        <label class="field-label">Category name<span class="req">*</span></label>
+        <input pInputText [(ngModel)]="record.categoryName" class="w-full" />
+      </div>
+      <div class="col-md-8">
+        <label class="field-label">Sits under</label>
+        <p-select [(ngModel)]="record.parentId" [options]="parentOptions" optionLabel="fullName" optionValue="id" [showClear]="true" [filter]="true"
+                  placeholder="Top level" class="w-full" appendTo="body" />
+      </div>
+      <div class="col-md-2"><div class="check-field"><p-checkbox [(ngModel)]="record.active" [binary]="true" inputId="cc-active" /><label for="cc-active">Active</label></div></div>
+      <div class="col-md-2"><div class="check-field"><p-checkbox [(ngModel)]="record.restricted" [binary]="true" inputId="cc-restricted" /><label for="cc-restricted">Restricted</label></div></div>
+      <div class="col-md-12"><small class="muted">Restricted categories are hidden from the client portal and visible only to the owning team.</small></div>
+      <div class="col-md-4">
+        <label class="field-label">Acknowledge within (hours)<span class="req">*</span></label>
+        <p-inputnumber [(ngModel)]="record.ackHours" [min]="1" [useGrouping]="false" class="w-full" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Resolve within (hours)<span class="req">*</span></label>
+        <p-inputnumber [(ngModel)]="record.resolveHours" [min]="1" [useGrouping]="false" class="w-full" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Default priority</label>
+        <p-select [(ngModel)]="record.defaultPriority" [options]="priorities" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" />
+      </div>
+      <div class="col-md-12"><small class="muted">Targets are for a medium case: critical halves them, high takes three quarters, low doubles them.</small></div>
+      <div class="col-md-6">
+        <label class="field-label">Routes to</label>
+        <p-select [(ngModel)]="record.teamId" [options]="teams" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Unrouted" class="w-full" appendTo="body" />
+      </div>
+      <div class="col-md-6">
+        <label class="field-label">Escalates to</label>
+        <p-select [(ngModel)]="record.escalationTeamId" [options]="teams" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Nowhere" class="w-full" appendTo="body" />
+      </div>
+    </div>
+  }
+  <ng-template #footer>
+    <p-button label="Close" severity="secondary" [outlined]="true" (onClick)="dialogVisible = false" />
+    <p-button label="Clear" severity="secondary" [outlined]="true" (onClick)="clear()" />
+    <p-button label="Save" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+  </ng-template>
+</p-dialog>

@@ -1,0 +1,125 @@
+@if (!batch) {
+  <app-page-header title="Order Batching" subtitle="Group pending fixed income orders into batches">
+    <p-button label="Batch pending orders" icon="pi pi-box" [loading]="batching" (onClick)="batchPending()" />
+  </app-page-header>
+
+  <div class="card">
+    <p-tabs [(value)]="tab">
+      <p-tablist>
+        <p-tab value="pending">Pending Orders</p-tab>
+        <p-tab value="batches">Fixed Income Order Batches</p-tab>
+      </p-tablist>
+      <p-tabpanels>
+        <p-tabpanel value="pending">
+          <div class="table-toolbar">
+            <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="loadPending(pendingEvent)" />
+            <span class="muted">{{ pendingTotal }} pending order(s)</span>
+          </div>
+          <p-table [value]="pending" [lazy]="true" (onLazyLoad)="loadPending($event)" [paginator]="true" [rows]="20" [totalRecords]="pendingTotal"
+                   [loading]="loadingPending" size="small" dataKey="id">
+            <ng-template #header>
+              <tr>
+                <th>Date</th><th>Order No</th><th>Account</th><th>Buy/Sell</th><th>Asset sub class</th>
+                <th class="text-right">Amount</th><th class="text-right">Qty sold</th><th class="text-right">Qty left</th><th>Batch</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-row>
+              <tr>
+                <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+                <td>{{ row.orderNo }}</td>
+                <td>{{ row.accountName }}</td>
+                <td>{{ row.buySellName }}</td>
+                <td>{{ row.subClassName }}</td>
+                <td class="text-right">{{ row.amount | number: '1.2-2' }}</td>
+                <td class="text-right">{{ row.amountSold | number: '1.2-2' }}</td>
+                <td class="text-right">{{ row.amountLeft | number: '1.2-2' }}</td>
+                <td>
+                  @if (row.batchId) {
+                    <p-button [label]="'View batch ' + (row.batchDate | date: 'dd/MM/yyyy')" size="small" [text]="true" (onClick)="view(row.batchId)" />
+                  } @else {
+                    <span class="muted">Not batched</span>
+                  }
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage><tr><td colspan="9">No pending orders.</td></tr></ng-template>
+          </p-table>
+        </p-tabpanel>
+        <p-tabpanel value="batches">
+          <div class="table-toolbar">
+            <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="loadBatches(batchEvent)" />
+            <span class="muted">{{ batchTotal }} batch(es)</span>
+          </div>
+          <p-table [value]="batches" [lazy]="true" (onLazyLoad)="loadBatches($event)" [paginator]="true" [rows]="20" [totalRecords]="batchTotal"
+                   [loading]="loadingBatches" size="small" dataKey="id">
+            <ng-template #header>
+              <tr>
+                <th>Date</th><th>Batch tag</th><th class="text-right">Orders</th><th class="text-right">Est. buy cost</th>
+                <th class="text-right">Est. sell cost</th><th class="text-right">Est. comms</th><th class="actions-col"></th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-row>
+              <tr>
+                <td>{{ row.batchDate | date: 'dd/MM/yyyy' }}</td>
+                <td>{{ row.batchTags }}</td>
+                <td class="text-right">{{ row.totalOrdersCount }}</td>
+                <td class="text-right">{{ row.estimatedBuyCost | number: '1.2-2' }}</td>
+                <td class="text-right">{{ row.estimatedSellCost | number: '1.2-2' }}</td>
+                <td class="text-right">{{ row.estimatedComms | number: '1.2-2' }}</td>
+                <td class="actions-col">
+                  <p-button icon="pi pi-eye" [text]="true" size="small" (onClick)="view(row.id)" ariaLabel="View" />
+                  <p-button icon="pi pi-download" [text]="true" size="small" (onClick)="exportBatch(row.id)" ariaLabel="Export" />
+                  <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="deleteBatch(row)" ariaLabel="Delete" />
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage><tr><td colspan="7">No batches.</td></tr></ng-template>
+          </p-table>
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
+  </div>
+} @else {
+  <app-page-header [title]="'Batch of ' + (batch.batchDate | date: 'dd/MM/yyyy')" subtitle="Orders in this batch">
+    <p-button label="Export CSV" icon="pi pi-download" severity="secondary" [outlined]="true" (onClick)="exportCsv(batch)" />
+    <p-button label="Delete batch" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="deleteBatch(batch)" />
+    <p-button label="Close" icon="pi pi-times" severity="secondary" (onClick)="batch = null" />
+  </app-page-header>
+  <div class="card">
+    <div class="detail-grid">
+      <div><div class="label">Batch date</div><div class="value">{{ batch.batchDate | date: 'dd/MM/yyyy' }}</div></div>
+      <div><div class="label">Batch tag</div><div class="value">{{ batch.batchTags || '-' }}</div></div>
+      <div><div class="label">Total orders</div><div class="value">{{ batch.totalOrdersCount }}</div></div>
+      <div><div class="label">Estimated cost (buy)</div><div class="value">{{ batch.estimatedBuyCost | number: '1.2-2' }}</div></div>
+      <div><div class="label">Estimated cost (sell)</div><div class="value">{{ batch.estimatedSellCost | number: '1.2-2' }}</div></div>
+      <div><div class="label">Estimated comms</div><div class="value">{{ batch.estimatedComms | number: '1.2-2' }}</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <p-table [value]="batch.orders || []" size="small" [paginator]="(batch.orders?.length || 0) > 10" [rows]="10" dataKey="id">
+      <ng-template #header>
+        <tr>
+          <th>Date</th><th>Order No</th><th>Account</th><th>Buy/Sell</th><th>Asset sub class</th>
+          <th class="text-right">Amount</th><th class="text-right">Qty sold</th><th class="text-right">Qty left</th><th>Status</th><th class="actions-col"></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row>
+        <tr>
+          <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ row.orderNo }}</td>
+          <td>{{ row.accountName }}</td>
+          <td>{{ row.buySellName }}</td>
+          <td>{{ row.subClassName }}</td>
+          <td class="text-right">{{ row.amount | number: '1.2-2' }}</td>
+          <td class="text-right">{{ row.amountSold | number: '1.2-2' }}</td>
+          <td class="text-right">{{ row.amountLeft | number: '1.2-2' }}</td>
+          <td><p-tag [value]="row.orderStatusName" [severity]="severity(row.orderStatus)" /></td>
+          <td class="actions-col">
+            <p-button label="Remove" icon="pi pi-minus-circle" size="small" [text]="true" severity="danger" (onClick)="removeOrder(row)" />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="10">This batch has no orders.</td></tr></ng-template>
+    </p-table>
+  </div>
+}

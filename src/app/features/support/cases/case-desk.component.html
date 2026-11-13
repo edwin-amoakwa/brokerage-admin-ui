@@ -1,0 +1,169 @@
+<app-page-header [title]="c ? c.caseReference + ' · ' + c.subject : 'Case'" subtitle="Client Care case desk">
+  <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="load()" />
+  <p-button label="Back to register" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" (onClick)="back()" />
+</app-page-header>
+
+@if (desk && c) {
+  <div class="card">
+    <div class="desk-head">
+      <div class="desk-main">
+        <div class="tags">
+          <p-tag [value]="c.caseStatusName" [severity]="sev.status(c.caseStatus)" />
+          <p-tag [value]="c.priorityName" [severity]="sev.priority(c.priority)" />
+          <p-tag [value]="c.caseTypeName" severity="secondary" />
+          @if (c.escalated) { <p-tag value="Escalated" severity="danger" /> }
+          @if (c.ackBreached) { <p-tag value="Acknowledgement missed" severity="danger" /> }
+          @if (c.resolveBreached) { <p-tag value="Resolution missed" severity="danger" /> }
+        </div>
+        <div class="detail-grid">
+          <div><div class="label">Client</div><div class="value">{{ c.investorName }}</div><div class="small muted">{{ c.investorEmail }}</div></div>
+          <div><div class="label">Account</div><div class="value">{{ c.accountCode || 'No account linked' }}</div></div>
+          <div><div class="label">Reported</div><div class="value">{{ c.reportedAt | date: 'dd/MM/yyyy HH:mm' }}</div><div class="small muted">via {{ c.channelName }}</div></div>
+          <div><div class="label">Category</div><div class="value">{{ c.categoryName || 'Uncategorised' }}</div></div>
+          <div><div class="label">Age</div><div class="value">{{ c.ageHours }} h</div></div>
+          <div><div class="label">Messages</div><div class="value">{{ desk.thread.length }}</div></div>
+        </div>
+      </div>
+      <div class="desk-side">
+        <div class="box">
+          <div class="label">Resolution target</div>
+          @if (c.open) {
+            <div class="value">{{ c.slaLabel }}</div>
+            <div class="sla-bar"><span [style.width.%]="c.slaPercentUsed" [style.background]="sev.sla(c.slaStyle)"></span></div>
+            <div class="small muted">Due {{ c.resolveDueAt | date: 'dd/MM/yyyy HH:mm' }} · acknowledge by {{ c.ackDueAt | date: 'dd/MM/yyyy HH:mm' }}</div>
+          } @else {
+            <div class="value">Settled</div>
+            <div class="small muted">{{ c.resolvedAt | date: 'dd/MM/yyyy HH:mm' }}</div>
+          }
+        </div>
+        <div class="box">
+          <div class="label">Owner</div>
+          <div class="value">{{ c.ownerName || 'Unassigned' }}</div>
+          <div class="small muted">{{ c.teamName || 'No team' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-bar">
+      @if (desk.canAcknowledge) { <p-button label="Acknowledge" icon="pi pi-check" (onClick)="act('acknowledge')" [loading]="busy" /> }
+      @if (desk.canTake) { <p-button label="Take this case" icon="pi pi-user" severity="secondary" (onClick)="act('take')" [loading]="busy" /> }
+      @if (desk.canAwaitClient) { <p-button label="Wait on client" icon="pi pi-pause" severity="secondary" [outlined]="true" (onClick)="act('await-client', true)" [loading]="busy" /> }
+      @if (desk.canEscalate) { <p-button label="Escalate" icon="pi pi-arrow-up" severity="warn" [outlined]="true" (onClick)="escalate()" [loading]="busy" /> }
+      @if (desk.canResolve) { <p-button label="Resolve" icon="pi pi-flag" severity="success" [outlined]="true" (onClick)="startResolution()" /> }
+      @if (desk.canClose) { <p-button label="Close" icon="pi pi-lock" severity="secondary" (onClick)="closeCase()" [loading]="busy" /> }
+      @if (desk.canReopen) { <p-button label="Reopen" icon="pi pi-replay" severity="secondary" (onClick)="act('reopen', true)" [loading]="busy" /> }
+      <input pInputText [(ngModel)]="actionNote" placeholder="Note for the trail (optional)" class="note" />
+    </div>
+  </div>
+
+  @if (resolving || desk.resolution) {
+    <div class="card">
+      <div class="card-title">Resolution</div>
+      @if (resolving) {
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="field-label">Outcome<span class="req">*</span></label>
+            <p-select [(ngModel)]="resolution.resolutionCode" [options]="resolutionCodes" optionLabel="itemName" optionValue="id" placeholder="Select" class="w-full" appendTo="body" />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">Compensation paid</label>
+            <p-inputnumber [(ngModel)]="resolution.compensationAmount" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" [min]="0" class="w-full" />
+          </div>
+          <div class="col-md-12">
+            <label class="field-label">Root cause<span class="req">*</span></label>
+            <input pInputText [(ngModel)]="resolution.rootCause" maxlength="250" class="w-full" />
+          </div>
+          <div class="col-md-12">
+            <label class="field-label">What was done</label>
+            <textarea pTextarea [(ngModel)]="resolution.remedy" rows="3" class="w-full"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="resolving = false" />
+          <p-button label="Record resolution" icon="pi pi-check" (onClick)="resolve()" [loading]="busy" />
+        </div>
+      } @else {
+        <div class="detail-grid">
+          <div><div class="label">Outcome</div><div class="value">{{ desk.resolution.resolutionCodeName }}</div></div>
+          <div><div class="label">Compensation paid</div><div class="value">{{ desk.resolution.compensationAmount | number: '1.2-2' }}</div></div>
+          <div><div class="label">Resolved by</div><div class="value">{{ desk.resolution.resolvedByName }}</div><div class="small muted">{{ desk.resolution.resolvedAt | date: 'dd/MM/yyyy HH:mm' }}</div></div>
+        </div>
+        <div class="field-label">Root cause</div><div>{{ desk.resolution.rootCause }}</div>
+        @if (desk.resolution.remedy) { <div class="field-label">What was done</div><div class="pre">{{ desk.resolution.remedy }}</div> }
+      }
+    </div>
+  }
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-title">Conversation</div>
+        @for (m of desk.thread; track m.id) {
+          <div class="msg" [class.client]="m.fromClient" [class.internal]="m.internal">
+            <div class="msg-head">
+              <strong>{{ m.authorName }}</strong>
+              @if (m.internal) { <p-tag value="Internal note" severity="warn" /> }
+              <span class="small muted">{{ m.sentAt | date: 'dd/MM/yyyy HH:mm' }} · {{ m.channelName }}</span>
+            </div>
+            <div class="pre">{{ m.body }}</div>
+            @for (a of m.attachments; track a.id) {
+              <a class="clickable small attach" (click)="download(a)"><i class="pi pi-paperclip"></i> {{ a.fileName }} ({{ a.readableSize }})</a>
+            }
+          </div>
+        } @empty {
+          <p class="muted">No messages yet.</p>
+        }
+
+        <div class="composer">
+          <textarea pTextarea [(ngModel)]="reply.body" rows="3" class="w-full" placeholder="Write a reply or an internal note"></textarea>
+          <div class="composer-bar">
+            <p-select [(ngModel)]="reply.visibility" [options]="visibilities" optionLabel="itemName" optionValue="id" appendTo="body" />
+            <p-select [(ngModel)]="reply.channel" [options]="channels" optionLabel="itemName" optionValue="id" appendTo="body" />
+            <input type="file" #fileInput (change)="fileChosen($event)" accept=".pdf,.png,.jpg,.jpeg,.gif,.txt,.csv,.doc,.docx,.xls,.xlsx" />
+            <p-button label="Send" icon="pi pi-send" (onClick)="send(fileInput)" [loading]="busy" />
+          </div>
+          <small class="muted">Attachments: documents, spreadsheets and images up to 10 MB.</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-title">Routing</div>
+        <label class="field-label">Owner</label>
+        <p-select [(ngModel)]="routing.ownerId" [options]="users" optionLabel="itemName" optionValue="id" [showClear]="true" [filter]="true" placeholder="Unassigned" class="w-full" appendTo="body" />
+        <label class="field-label">Team</label>
+        <p-select [(ngModel)]="routing.teamId" [options]="teams" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="No team" class="w-full" appendTo="body" />
+        <div class="form-actions"><p-button label="Assign" icon="pi pi-user-plus" (onClick)="assign()" [loading]="busy" /></div>
+        <label class="field-label">Category</label>
+        <p-select [(ngModel)]="routing.categoryId" [options]="categories" optionLabel="itemName" optionValue="id" [filter]="true" placeholder="Select" class="w-full" appendTo="body" />
+        <label class="field-label">Priority</label>
+        <p-select [(ngModel)]="routing.priority" [options]="priorities" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" />
+        <div class="form-actions"><p-button label="Reclassify" icon="pi pi-tags" severity="secondary" (onClick)="reclassify()" [loading]="busy" /></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Attachments</div>
+        @for (a of desk.attachments; track a.id) {
+          <div class="attach-row">
+            <a class="clickable" (click)="download(a)"><i class="pi pi-download"></i> {{ a.fileName }}</a>
+            <span class="small muted">{{ a.readableSize }} · {{ a.uploadedBy }}</span>
+          </div>
+        } @empty {
+          <p class="muted">No attachments.</p>
+        }
+      </div>
+
+      <div class="card">
+        <div class="card-title">Audit trail</div>
+        @for (e of desk.history; track e.id) {
+          <div class="trail" [class.ok]="e.eventType === 'RESOLVED'" [class.bad]="e.eventType === 'SLA_BREACHED'">
+            <div><strong>{{ e.eventTypeName }}</strong> <span class="small muted">{{ e.occurredAt | date: 'dd/MM/yyyy HH:mm' }}</span></div>
+            <div class="small muted">{{ e.actor }}@if (e.toStatusName) { · {{ e.toStatusName }} }</div>
+            @if (e.note) { <div class="small">{{ e.note }}</div> }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

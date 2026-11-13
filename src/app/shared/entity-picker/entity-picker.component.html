@@ -1,0 +1,38 @@
+<div class="picker">
+  <div class="picker-value" [class.empty]="!value" (click)="!disabled && open()">
+    {{ value?.displayName || placeholderText }}
+  </div>
+  <p-button icon="pi pi-search" [disabled]="disabled" (onClick)="open()" [label]="buttonLabel" severity="secondary" [outlined]="true" />
+  @if (value && clearable && !disabled) {
+    <p-button icon="pi pi-times" severity="secondary" [text]="true" (onClick)="clear()" ariaLabel="Clear" />
+  }
+</div>
+
+<p-dialog [header]="config.title" [(visible)]="visible" [modal]="true" [style]="{ width: '860px', maxWidth: '96vw' }" appendTo="body">
+  <div class="picker-search">
+    <input pInputText [(ngModel)]="keyword" [placeholder]="config.placeholder" (keyup.enter)="search()" autofocus class="w-full" />
+    <p-button label="Search" icon="pi pi-search" (onClick)="search()" />
+  </div>
+  <p-table [value]="rows" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="10" [totalRecords]="total"
+           [loading]="loading" dataKey="id" size="small" [first]="first">
+    <ng-template #header>
+      <tr>
+        @for (c of config.columns; track c.field) {
+          <th>{{ c.header }}</th>
+        }
+        <th></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr class="clickable" (click)="pick(row)">
+        @for (c of config.columns; track c.field) {
+          <td>{{ c.date ? (row[c.field] | date: 'dd/MM/yyyy') : row[c.field] }}</td>
+        }
+        <td class="text-right"><p-button label="Select" size="small" [text]="true" /></td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr><td [attr.colspan]="config.columns.length + 1">No records found.</td></tr>
+    </ng-template>
+  </p-table>
+</p-dialog>

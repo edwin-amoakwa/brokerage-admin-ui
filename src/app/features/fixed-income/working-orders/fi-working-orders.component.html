@@ -1,0 +1,155 @@
+@if (!order) {
+  <app-page-header title="Working Transactions" subtitle="Open fixed income orders: pick one to record its executions" />
+  <div class="card">
+    <div class="table-toolbar">
+      <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="reload()" />
+      <span class="muted">{{ total }} working order(s)</span>
+    </div>
+    <p-table [value]="rows" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="20" [totalRecords]="total"
+             [loading]="loading" size="small" [first]="first" dataKey="id">
+      <ng-template #header>
+        <tr>
+          <th>Date</th><th>Order No</th><th>Account</th><th>Buy/Sell</th><th>Asset sub class</th><th>Security</th>
+          <th class="text-right">Amount</th><th class="text-right">Amount left</th><th class="text-right">Amount sold</th><th>Status</th>
+          <th class="actions-col"></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row>
+        <tr>
+          <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ row.orderNo }}</td>
+          <td>{{ row.accountName }}</td>
+          <td>{{ row.buySellName }}</td>
+          <td>{{ row.subClassName }}</td>
+          <td>{{ row.fixedIncomeName }}</td>
+          <td class="text-right">{{ row.amount | number: '1.2-2' }}</td>
+          <td class="text-right">{{ row.amountLeft | number: '1.2-2' }}</td>
+          <td class="text-right">{{ row.amountSold | number: '1.2-2' }}</td>
+          <td><p-tag [value]="row.orderStatusName" [severity]="severity(row.orderStatus)" /></td>
+          <td class="actions-col"><p-button label="Manage" size="small" [text]="true" icon="pi pi-cog" (onClick)="manage(row.id)" /></td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="11">No working orders.</td></tr></ng-template>
+    </p-table>
+  </div>
+} @else {
+  <app-page-header [title]="'Order ' + (order.orderNo || '')" [subtitle]="order.accountName">
+    <p-button label="Print transactions" icon="pi pi-print" severity="secondary" [outlined]="true" [loading]="printing" (onClick)="print()" />
+    <p-button label="Close" icon="pi pi-times" severity="secondary" (onClick)="close()" />
+  </app-page-header>
+
+  <div class="card">
+    <div class="detail-grid">
+      <div><div class="label">Order date</div><div class="value">{{ order.valueDate | date: 'dd/MM/yyyy' }}</div></div>
+      <div><div class="label">Buy / Sell</div><div class="value">{{ order.buySellName }}</div></div>
+      <div><div class="label">Asset sub class</div><div class="value">{{ order.subClassName }}</div></div>
+      <div><div class="label">Security</div><div class="value">{{ order.fixedIncomeName || '-' }}</div></div>
+      <div><div class="label">Amount</div><div class="value">{{ order.amount | number: '1.2-2' }}</div></div>
+      <div><div class="label">Amount sold</div><div class="value">{{ order.amountSold | number: '1.2-2' }}</div></div>
+      <div><div class="label">Amount left</div><div class="value">{{ order.amountLeft | number: '1.2-2' }}</div></div>
+      <div><div class="label">Status</div><div class="value"><p-tag [value]="order.orderStatusName" [severity]="severity(order.orderStatus)" /></div></div>
+    </div>
+  </div>
+
+  @if (working) {
+    <div class="card">
+      <div class="card-title">{{ tx?.id ? 'Edit execution ' + (tx.executionId || '') : 'Record an execution' }}</div>
+      @if (tx) {
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="field-label">Security<span class="req">*</span></label>
+            <app-entity-picker kind="fixed-income" [value]="security" (selected)="security = $event" buttonLabel="Find" placeholder="Select the security" />
+          </div>
+          <div class="col-md-3">
+            <label class="field-label">Transaction date<span class="req">*</span></label>
+            <input type="date" pInputText [(ngModel)]="tx.valueDate" class="w-full" />
+          </div>
+          <div class="col-md-3">
+            <label class="field-label">Issue date</label>
+            <input pInputText [value]="(security?.issueDate | date: 'dd/MM/yyyy') || ''" class="w-full" disabled />
+          </div>
+          <div class="col-md-3">
+            <label class="field-label">Market<span class="req">*</span></label>
+            <p-select [(ngModel)]="tx.market" [options]="markets" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" />
+          </div>
+          <div class="col-md-3">
+            <label class="field-label">Currency<span class="req">*</span></label>
+            <p-select [(ngModel)]="tx.currency" [options]="currencies" optionLabel="itemName" optionValue="id" [filter]="true" class="w-full" appendTo="body" />
+          </div>
+          <div class="col-md-3">
+            <label class="field-label">Execution type<span class="req">*</span></label>
+            <p-select [(ngModel)]="tx.executionType" [options]="execTypes" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" />
+          </div>
+          <div class="col-md-3">
+            <label class="field-label">Cost<span class="req">*</span></label>
+            <p-inputnumber [(ngModel)]="tx.cost" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="5" class="w-full" inputStyleClass="w-full" />
+          </div>
+          @if (tx.market === 'SECONDARY') {
+            <div class="col-md-4">
+              <label class="field-label">Face value<span class="req">*</span></label>
+              <p-inputnumber [(ngModel)]="tx.faceValue" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="5" class="w-full" inputStyleClass="w-full" />
+            </div>
+            <div class="col-md-4">
+              <label class="field-label">YTM %<span class="req">*</span></label>
+              <p-inputnumber [(ngModel)]="tx.ytm" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="5" class="w-full" inputStyleClass="w-full" />
+            </div>
+            <div class="col-md-4">
+              <label class="field-label">Price<span class="req">*</span></label>
+              <p-inputnumber [(ngModel)]="tx.price" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="5" class="w-full" inputStyleClass="w-full" />
+            </div>
+          }
+          @if (tx.market === 'TRANSFER') {
+            <div class="col-md-4">
+              <label class="field-label">Transfer date<span class="req">*</span></label>
+              <input type="date" pInputText [(ngModel)]="tx.transferredDate" class="w-full" />
+            </div>
+          }
+          <div class="col-md-12">
+            <label class="field-label">Notes</label>
+            <textarea pTextarea [(ngModel)]="tx.notes" rows="2" class="w-full"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <p-button label="Clear" severity="secondary" [outlined]="true" (onClick)="newExecution()" />
+          <p-button label="Save" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="card muted">This order is {{ order.orderStatusName }}; new executions cannot be recorded against it.</div>
+  }
+
+  <div class="card">
+    <div class="card-title">Executions</div>
+    <p-table [value]="executions" size="small" [paginator]="executions.length > 10" [rows]="10" dataKey="id">
+      <ng-template #header>
+        <tr>
+          <th>Date</th><th>Security</th><th>Market</th><th class="text-right">Face value</th><th class="text-right">Cost</th>
+          <th>Maturity date</th><th class="text-right">Maturity value</th><th>Execution ID</th><th>Type</th><th>Status</th><th class="actions-col"></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-row>
+        <tr>
+          <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+          <td>{{ row.fixedIncomeName }}</td>
+          <td>{{ row.market }}</td>
+          <td class="text-right">{{ row.faceValue | number: '1.2-2' }}</td>
+          <td class="text-right">{{ row.cost | number: '1.2-2' }}</td>
+          <td>{{ row.maturityDate | date: 'dd/MM/yyyy' }}</td>
+          <td class="text-right">{{ row.maturityValue | number: '1.2-2' }}</td>
+          <td>{{ row.executionId }}</td>
+          <td>{{ row.executionType }}</td>
+          <td><p-tag [value]="row.transactionStatusName || 'Not Processed'" [severity]="row.transactionStatus === 'PROCESSED' ? 'success' : 'warn'" /></td>
+          <td class="actions-col">
+            <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="editExecution(row)" [disabled]="row.transactionStatus === 'PROCESSED'" ariaLabel="Edit" />
+            <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="removeExecution(row)"
+                      [disabled]="row.transactionStatus === 'PROCESSED'" ariaLabel="Delete" />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="11">No executions recorded yet.</td></tr></ng-template>
+    </p-table>
+  </div>
+}
+
+<app-report-viewer [reportData]="reportData" />

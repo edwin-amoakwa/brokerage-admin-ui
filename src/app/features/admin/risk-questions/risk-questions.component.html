@@ -1,0 +1,89 @@
+@if (!managed) {
+  <app-page-header title="Risk Assessment Questions" subtitle="Questions investors answer to work out their risk level. Drag rows to change the order.">
+    <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="loadQuestions()" />
+    <p-button label="Add question" icon="pi pi-plus" (onClick)="createQuestion()" />
+  </app-page-header>
+
+  <div class="card">
+    <p-table [value]="questions" [loading]="loading" size="small" dataKey="id" (onRowReorder)="saveOrder()">
+      <ng-template #header>
+        <tr><th style="width: 3rem"></th><th style="width: 3rem">#</th><th>Question</th><th style="width: 8rem">Answers</th><th class="actions-col"></th></tr>
+      </ng-template>
+      <ng-template #body let-row let-index="rowIndex">
+        <tr [pReorderableRow]="index">
+          <td><span class="pi pi-bars" pReorderableRowHandle style="cursor: move" title="Drag to reorder"></span></td>
+          <td>{{ index + 1 }}</td>
+          <td style="white-space: pre-line">{{ row.assessmentQuestion }}</td>
+          <td><p-tag [value]="row.answerCount + ''" [severity]="row.answerCount ? 'info' : 'warn'" /></td>
+          <td class="actions-col">
+            <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="editQuestion(row)" ariaLabel="Edit" />
+            <p-button icon="pi pi-list" [text]="true" size="small" (onClick)="manage(row)" ariaLabel="Manage answers" />
+            <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="removeQuestion(row)" ariaLabel="Delete" />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="5">No questions yet.</td></tr></ng-template>
+    </p-table>
+  </div>
+} @else {
+  <app-page-header title="Manage answers" [subtitle]="'Question ' + (managed.viewOrder + 1)">
+    <p-button label="Back to questions" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" (onClick)="closeManage()" />
+  </app-page-header>
+
+  <div class="card">
+    <div class="field-label">Question</div>
+    <p style="white-space: pre-line">{{ managed.assessmentQuestion }}</p>
+  </div>
+
+  <div class="card">
+    <h3 class="card-title">{{ answer.id ? 'Edit answer' : 'New answer' }}</h3>
+    <div class="row g-3">
+      <div class="col-md-8">
+        <label class="field-label">Answer description<span class="req">*</span></label>
+        <input pInputText [(ngModel)]="answer.answerDescription" class="w-full" />
+      </div>
+      <div class="col-md-2">
+        <label class="field-label">Risk score<span class="req">*</span></label>
+        <p-inputnumber [(ngModel)]="answer.riskScore" [useGrouping]="false" [maxFractionDigits]="0" class="w-full" />
+      </div>
+      <div class="col-md-2 form-actions" style="align-self: end">
+        <p-button label="Clear" severity="secondary" [outlined]="true" (onClick)="clearAnswer()" />
+        <p-button label="Save" icon="pi pi-check" [loading]="saving" (onClick)="saveAnswer()" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-toolbar">
+      <span class="muted">{{ answers.length }} answer(s)</span>
+      <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [text]="true" (onClick)="loadAnswers()" />
+    </div>
+    <p-table [value]="answers" size="small">
+      <ng-template #header>
+        <tr><th>Answer</th><th class="text-right" style="width: 8rem">Risk Score</th><th class="actions-col"></th></tr>
+      </ng-template>
+      <ng-template #body let-row>
+        <tr>
+          <td>{{ row.answerDescription }}</td>
+          <td class="text-right">{{ row.riskScore }}</td>
+          <td class="actions-col">
+            <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="answer = { ...row }" ariaLabel="Edit" />
+            <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="removeAnswer(row)" ariaLabel="Delete" />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="3">No answers yet. Add at least two.</td></tr></ng-template>
+    </p-table>
+  </div>
+}
+
+<p-dialog [header]="question?.id ? 'Edit question' : 'New question'" [(visible)]="questionVisible" [modal]="true" [style]="{ width: '640px', maxWidth: '96vw' }" appendTo="body">
+  @if (question) {
+    <label class="field-label">Assessment question<span class="req">*</span></label>
+    <textarea pTextarea [(ngModel)]="question.assessmentQuestion" rows="4" class="w-full"></textarea>
+  }
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="questionVisible = false" />
+    <p-button label="Save" icon="pi pi-check" [loading]="saving" (onClick)="saveQuestion()" />
+  </ng-template>
+</p-dialog>

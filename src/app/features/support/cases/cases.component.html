@@ -1,0 +1,135 @@
+<app-page-header title="Client Care" subtitle="Complaints, queries and service requests, with their service targets">
+  <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="reload()" />
+  <p-button label="My queue" icon="pi pi-user" severity="secondary" [outlined]="true" (onClick)="myQueue()" />
+  <p-button label="Print register" icon="pi pi-print" severity="secondary" [outlined]="true" [loading]="printing" (onClick)="print()" />
+  <p-button label="Log a case" icon="pi pi-plus" (onClick)="newCase()" />
+</app-page-header>
+
+<app-stat-tiles [tiles]="tiles" />
+
+<div class="card">
+  <div class="filter-bar">
+    <div class="field"><label class="field-label">From</label><input type="date" pInputText [(ngModel)]="f.fromDate" /></div>
+    <div class="field"><label class="field-label">To</label><input type="date" pInputText [(ngModel)]="f.toDate" /></div>
+    <div class="field">
+      <label class="field-label">Status</label>
+      <p-select [(ngModel)]="f.status" [options]="statuses" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Any" appendTo="body" />
+    </div>
+    <div class="field">
+      <label class="field-label">Type</label>
+      <p-select [(ngModel)]="f.caseType" [options]="types" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Any" appendTo="body" />
+    </div>
+    <div class="field">
+      <label class="field-label">Priority</label>
+      <p-select [(ngModel)]="f.priority" [options]="priorities" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Any" appendTo="body" />
+    </div>
+    <div class="field">
+      <label class="field-label">Team</label>
+      <p-select [(ngModel)]="f.teamId" [options]="teams" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Any" appendTo="body" />
+    </div>
+    <div class="check-field"><p-checkbox [(ngModel)]="f.breachedOnly" [binary]="true" inputId="c-breached" /><label for="c-breached">Past target</label></div>
+    <div class="check-field"><p-checkbox [(ngModel)]="f.mineOnly" [binary]="true" inputId="c-mine" /><label for="c-mine">Assigned to me</label></div>
+    <p-button label="Apply" icon="pi pi-filter" (onClick)="reload()" />
+    <p-button label="Reset" severity="secondary" [outlined]="true" (onClick)="reset()" />
+  </div>
+  @if (f.openOnly || f.unassignedOnly) {
+    <div class="mb-2">
+      <p-tag severity="info" [value]="f.unassignedOnly ? 'Open cases with no owner' : 'Open cases only'" />
+      <p-button label="Show all" [text]="true" size="small" (onClick)="reset()" />
+    </div>
+  }
+
+  <div class="table-toolbar">
+    <input pInputText [(ngModel)]="keyword" placeholder="Search reference, client or subject" (keyup.enter)="reload()" />
+    <p-button label="Search" icon="pi pi-search" severity="secondary" [outlined]="true" (onClick)="reload()" />
+    <span class="muted">{{ total }} case(s)</span>
+  </div>
+  <p-table [value]="rows" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="15" [totalRecords]="total" [loading]="loading"
+           size="small" [first]="first" [rowsPerPageOptions]="[15, 30, 60]">
+    <ng-template #header>
+      <tr><th>Reference</th><th>Client</th><th>Subject</th><th>Priority</th><th>Status</th><th>Owner</th><th>Reported</th><th style="min-width: 150px">Target</th><th class="actions-col"></th></tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr>
+        <td>
+          <a class="clickable" (click)="open(row)"><strong>{{ row.caseReference }}</strong></a>
+          <div class="small muted">{{ row.caseTypeName }}</div>
+        </td>
+        <td>{{ row.investorName }}<div class="small muted">{{ row.accountCode || 'No account linked' }}</div></td>
+        <td>{{ row.subject }}<div class="small muted">{{ row.categoryName || 'Uncategorised' }} via {{ row.channelName }}</div></td>
+        <td><p-tag [value]="row.priorityName" [severity]="sev.priority(row.priority)" /></td>
+        <td>
+          <p-tag [value]="row.caseStatusName" [severity]="sev.status(row.caseStatus)" />
+          @if (row.escalated) { <div class="small" style="color: var(--app-bad)">Escalated</div> }
+        </td>
+        <td>{{ row.ownerName || 'Unassigned' }}<div class="small muted">{{ row.teamName }}</div></td>
+        <td>{{ row.reportedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+        <td>
+          @if (row.open) {
+            <div class="small">{{ row.slaLabel }}</div>
+            <div class="sla-bar"><span [style.width.%]="row.slaPercentUsed" [style.background]="sev.sla(row.slaStyle)"></span></div>
+          } @else {
+            <span class="muted small">Settled</span>
+          }
+        </td>
+        <td class="actions-col"><p-button label="Open" size="small" [text]="true" (onClick)="open(row)" /></td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage><tr><td colspan="9">No cases match these filters.</td></tr></ng-template>
+  </p-table>
+</div>
+
+<p-dialog header="Log a case" [(visible)]="createVisible" [modal]="true" [style]="{ width: '820px', maxWidth: '96vw' }" appendTo="body">
+  @if (draft) {
+    <div class="row g-3">
+      <div class="col-md-7">
+        <label class="field-label">Client<span class="req">*</span></label>
+        <app-entity-picker kind="investor" [value]="draftInvestor" (selected)="pickInvestor($event)" placeholder="Find the client" />
+        @if (draftInvestor) { <small class="muted">{{ draftInvestor.investorCode }} · {{ draftInvestor.emailAddress }}</small> }
+      </div>
+      <div class="col-md-5">
+        <label class="field-label">Account</label>
+        <p-select [(ngModel)]="draft.accountId" [options]="clientAccounts" optionLabel="itemName" optionValue="id" [showClear]="true"
+                  placeholder="Not about one account" class="w-full" appendTo="body" [disabled]="!draftInvestor" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Type<span class="req">*</span></label>
+        <p-select [(ngModel)]="draft.caseType" [options]="types" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" />
+      </div>
+      <div class="col-md-8">
+        <label class="field-label">Category<span class="req">*</span></label>
+        <p-select [(ngModel)]="draft.categoryId" [options]="categories" optionLabel="itemName" optionValue="id" [filter]="true"
+                  placeholder="Select" class="w-full" appendTo="body" (onChange)="categoryChanged()" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Channel<span class="req">*</span></label>
+        <p-select [(ngModel)]="draft.channel" [options]="channels" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Priority</label>
+        <p-select [(ngModel)]="draft.priority" [options]="priorities" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" (onChange)="preview()" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Team</label>
+        <p-select [(ngModel)]="draft.teamId" [options]="teams" optionLabel="itemName" optionValue="id" [showClear]="true"
+                  placeholder="Route by category" class="w-full" appendTo="body" />
+      </div>
+      <div class="col-md-12">
+        <label class="field-label">Subject<span class="req">*</span></label>
+        <input pInputText [(ngModel)]="draft.subject" maxlength="250" class="w-full" />
+      </div>
+      <div class="col-md-12">
+        <label class="field-label">Description<span class="req">*</span></label>
+        <textarea pTextarea [(ngModel)]="draft.description" rows="4" class="w-full" placeholder="The client's own words"></textarea>
+      </div>
+      <div class="col-md-6"><label class="field-label">Acknowledge by</label><div>{{ (sla?.ackDueAt | date: 'dd/MM/yyyy HH:mm') || '-' }}</div></div>
+      <div class="col-md-6"><label class="field-label">Resolve by</label><div>{{ (sla?.resolveDueAt | date: 'dd/MM/yyyy HH:mm') || '-' }}</div></div>
+    </div>
+  }
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="createVisible = false" />
+    <p-button label="Raise case" icon="pi pi-check" [loading]="saving" (onClick)="saveCase()" />
+  </ng-template>
+</p-dialog>
+
+<app-report-viewer [reportData]="reportData" />

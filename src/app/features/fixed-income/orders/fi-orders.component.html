@@ -1,0 +1,126 @@
+<app-page-header title="Orders" subtitle="Fixed income trade orders">
+  <p-button label="Print" icon="pi pi-print" severity="secondary" [outlined]="true" [loading]="printing" (onClick)="print()" />
+  <p-button label="Add new order" icon="pi pi-plus" (onClick)="create()" />
+</app-page-header>
+
+<div class="card">
+  <div class="filter-bar">
+    <div class="field">
+      <label class="field-label">From</label>
+      <input type="date" pInputText [(ngModel)]="fromDate" />
+    </div>
+    <div class="field">
+      <label class="field-label">To</label>
+      <input type="date" pInputText [(ngModel)]="toDate" />
+    </div>
+    <div class="field">
+      <label class="field-label">Order no or account</label>
+      <input pInputText [(ngModel)]="keyword" (keyup.enter)="reload()" />
+    </div>
+    <p-button label="Search" icon="pi pi-search" (onClick)="reload()" />
+    <span class="muted">{{ total }} order(s)</span>
+  </div>
+
+  <p-table [value]="rows" [lazy]="true" (onLazyLoad)="load($event)" [paginator]="true" [rows]="20" [totalRecords]="total"
+           [loading]="loading" size="small" [first]="first" dataKey="id">
+    <ng-template #header>
+      <tr>
+        <th>Date</th><th>Order No</th><th>Account</th><th>Buy/Sell</th><th>Asset sub class</th><th>Security</th>
+        <th class="text-right">Amount</th><th class="text-right">Qty sold</th><th class="text-right">Qty left</th><th>Status</th>
+        <th class="actions-col"></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr>
+        <td>{{ row.valueDate | date: 'dd/MM/yyyy' }}</td>
+        <td>{{ row.orderNo }}</td>
+        <td>{{ row.accountName }}</td>
+        <td>{{ row.buySellName }}</td>
+        <td>{{ row.subClassName }}</td>
+        <td>{{ row.fixedIncomeName }}</td>
+        <td class="text-right">{{ row.amount | number: '1.2-2' }}</td>
+        <td class="text-right">{{ row.amountSold | number: '1.2-2' }}</td>
+        <td class="text-right">{{ row.amountLeft | number: '1.2-2' }}</td>
+        <td><p-tag [value]="row.orderStatusName" [severity]="severity(row.orderStatus)" /></td>
+        <td class="actions-col">
+          <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="edit(row)" [disabled]="row.orderStatus !== 'PENDING'" ariaLabel="Edit" />
+          <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="remove(row)" ariaLabel="Delete" />
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage><tr><td colspan="11">No orders found.</td></tr></ng-template>
+  </p-table>
+</div>
+
+<p-dialog [header]="record?.id ? 'Edit order ' + (record.orderNo || '') : 'New order'" [(visible)]="dialogVisible" [modal]="true"
+          [style]="{ width: '760px', maxWidth: '96vw' }" appendTo="body">
+  @if (record) {
+    @if (!quote) {
+      <div class="row g-3">
+        <div class="col-md-12">
+          <label class="field-label">Account<span class="req">*</span></label>
+          <app-entity-picker kind="account" [value]="account" (selected)="account = $event" buttonLabel="Find" placeholder="Select an account" />
+        </div>
+        <div class="col-md-4">
+          <label class="field-label">Order date<span class="req">*</span></label>
+          <input type="date" pInputText [(ngModel)]="record.valueDate" class="w-full" />
+        </div>
+        <div class="col-md-4">
+          <label class="field-label">Buy / Sell<span class="req">*</span></label>
+          <p-select [(ngModel)]="record.buySell" [options]="buySellOptions" optionLabel="itemName" optionValue="id" class="w-full" appendTo="body" />
+        </div>
+        <div class="col-md-4">
+          <label class="field-label">Asset sub class<span class="req">*</span></label>
+          <p-select [(ngModel)]="record.subClass" [options]="subClasses" optionLabel="itemName" optionValue="id" [filter]="true"
+                    class="w-full" appendTo="body" [disabled]="!!security" />
+        </div>
+        <div class="col-md-12">
+          <label class="field-label">Security (optional)</label>
+          <app-entity-picker kind="fixed-income" [value]="security" (selected)="selectSecurity($event)" buttonLabel="Find" placeholder="No specific security" />
+          <small class="muted">Picking a security copies its maturity date, sub class and coupon (as the default yield).</small>
+        </div>
+        <div class="col-md-4">
+          <label class="field-label">Amount<span class="req">*</span></label>
+          <p-inputnumber [(ngModel)]="record.amount" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" class="w-full" inputStyleClass="w-full" />
+        </div>
+        <div class="col-md-4">
+          <label class="field-label">Yield %</label>
+          <p-inputnumber [(ngModel)]="record.yield" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="4" class="w-full" inputStyleClass="w-full" />
+        </div>
+        <div class="col-md-4">
+          <label class="field-label">Maturity date</label>
+          <input type="date" pInputText [(ngModel)]="record.maturityDate" class="w-full" [disabled]="!!security" />
+        </div>
+      </div>
+    } @else {
+      <div class="section-title">Review the order</div>
+      <div class="detail-grid">
+        <div><div class="label">Account</div><div class="value">{{ account?.displayName }}</div></div>
+        <div><div class="label">Order date</div><div class="value">{{ quote.valueDate | date: 'dd/MM/yyyy' }}</div></div>
+        <div><div class="label">Buy / Sell</div><div class="value">{{ record.buySell === 'BUY' ? 'Buy' : 'Sell' }}</div></div>
+        <div><div class="label">Asset sub class</div><div class="value">{{ quote.subClassName }}</div></div>
+        <div><div class="label">Security</div><div class="value">{{ quote.fixedIncomeName || '-' }}</div></div>
+        <div><div class="label">ISIN</div><div class="value">{{ quote.isin || '-' }}</div></div>
+        <div><div class="label">Amount</div><div class="value">{{ quote.amount | number: '1.2-2' }}</div></div>
+        <div><div class="label">Yield %</div><div class="value">{{ quote.yield | number: '1.2-4' }}</div></div>
+        <div><div class="label">Maturity date</div><div class="value">{{ (quote.maturityDate | date: 'dd/MM/yyyy') || '-' }}</div></div>
+        <div><div class="label">Days to maturity</div><div class="value">{{ quote.daysToMaturity }}</div></div>
+        <div><div class="label">Projected interest</div><div class="value">{{ quote.projectedInterest | number: '1.2-2' }}</div></div>
+        <div><div class="label">Projected maturity value</div><div class="value">{{ quote.maturityValue | number: '1.2-2' }}</div></div>
+      </div>
+      <p class="muted small">Simple interest (ACT/365) on the amount at the yield. Indicative only: the security's own coupon schedule is what pays.</p>
+    }
+  }
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="dialogVisible = false" />
+    @if (!quote) {
+      <p-button label="Review order" icon="pi pi-arrow-right" [loading]="saving" (onClick)="review()" />
+    } @else {
+      <p-button label="Back" icon="pi pi-arrow-left" severity="secondary" [outlined]="true" (onClick)="quote = null" />
+      <p-button [label]="record.buySell === 'SELL' ? 'Save Sale' : 'Save Purchase'" icon="pi pi-check" [loading]="saving"
+                [severity]="record.buySell === 'SELL' ? 'danger' : 'success'" (onClick)="save()" />
+    }
+  </ng-template>
+</p-dialog>
+
+<app-report-viewer [reportData]="reportData" />

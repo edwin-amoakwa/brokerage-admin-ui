@@ -1,0 +1,40 @@
+<app-page-header title="Account Utilities" subtitle="Back-office tools for client portal accounts" />
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-title">Investor</div>
+      <app-entity-picker kind="investor" [value]="investor" (selected)="select($event)" />
+    </div>
+  </div>
+  <div class="col-lg-7">
+    @if (investor) {
+      <div class="card">
+        <div class="card-title">Change Password</div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="field-label">Investor</label>
+            <input pInputText [value]="investor.displayName" disabled class="w-full" />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">Email</label>
+            <input pInputText [value]="investor.emailAddress || '-'" disabled class="w-full" />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">New Password<span class="req">*</span></label>
+            <p-password [(ngModel)]="password" [toggleMask]="true" [feedback]="false" styleClass="w-full" inputStyleClass="w-full" autocomplete="new-password" />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">Confirm Password<span class="req">*</span></label>
+            <p-password [(ngModel)]="confirmPassword" [toggleMask]="true" [feedback]="false" styleClass="w-full" inputStyleClass="w-full" autocomplete="new-password" />
+          </div>
+        </div>
+        <p class="muted small">At least 8 characters. The investor signs in to the client portal with this password; the reset is recorded against your name.</p>
+        <div class="form-actions">
+          <p-button label="Change" icon="pi pi-key" [loading]="saving" (onClick)="change()" />
+        </div>
+      </div>
+    } @else {
+      <div class="card muted">Select an investor to reset their portal password.</div>
+    }
+  </div>
+</div>

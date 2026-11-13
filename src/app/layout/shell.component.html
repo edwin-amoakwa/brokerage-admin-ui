@@ -1,0 +1,78 @@
+<div class="layout" [class.sidebar-collapsed]="collapsed()" [class.mobile-open]="mobileOpen()">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">L</span>
+      <span class="brand-text">Prime Brokerage</span>
+    </div>
+    <div class="menu-search">
+      <i class="pi pi-search"></i>
+      <input #searchBox type="search" placeholder="Search menu" aria-label="Search menu" autocomplete="off"
+             [value]="query()" (input)="query.set(searchBox.value)"
+             (keydown.enter)="openFirstMatch()" (keydown.escape)="clearSearch(searchBox)" />
+      @if (query()) {
+        <button type="button" class="search-clear" (click)="clearSearch(searchBox)" aria-label="Clear search"><i class="pi pi-times"></i></button>
+      } @else {
+        <kbd>/</kbd>
+      }
+    </div>
+    <nav>
+      @if (query()) {
+        @for (group of filteredMenu(); track group.label) {
+          <div class="nav-section">{{ group.label }}</div>
+          <div class="nav-items search-results">
+            @for (item of group.items; track item.route) {
+              <a [routerLink]="item.route" routerLinkActive="active" (click)="clearSearch(searchBox)">
+                <i [class]="item.icon"></i><span>{{ item.label }}</span>
+              </a>
+            }
+          </div>
+        } @empty {
+          <div class="nav-empty">No menu item matches "{{ query() }}".</div>
+        }
+      } @else {
+        @for (group of menu(); track group.label) {
+          @if (group.items.length === 1 && group.items[0].label === group.label) {
+            <a class="nav-single" [routerLink]="group.items[0].route" routerLinkActive="active">
+              <i [class]="group.icon"></i><span>{{ group.label }}</span>
+            </a>
+          } @else {
+            <div class="nav-group" [class.open]="openGroup() === group.label">
+              <button type="button" class="nav-group-header" (click)="toggle(group.label)">
+                <i [class]="group.icon"></i><span>{{ group.label }}</span><i class="pi pi-angle-down chevron"></i>
+              </button>
+              @if (openGroup() === group.label) {
+                <div class="nav-items">
+                  @for (item of group.items; track item.route) {
+                    <a [routerLink]="item.route" routerLinkActive="active">
+                      <i [class]="item.icon"></i><span>{{ item.label }}</span>
+                    </a>
+                  }
+                </div>
+              }
+            </div>
+          }
+        }
+      }
+    </nav>
+  </aside>
+  <div class="sidebar-backdrop" (click)="mobileOpen.set(false)"></div>
+  <div class="main">
+    <header class="topbar">
+      <p-button icon="pi pi-bars" [text]="true" severity="secondary" (onClick)="toggleSidebar()" ariaLabel="Toggle menu" />
+      <div class="topbar-spacer"></div>
+      <button type="button" class="user-button" (click)="userMenu.toggle($event)">
+        <span class="avatar">{{ initials() }}</span>
+        <span class="user-text">
+          <span class="user-name">{{ session.user()?.accountName }}</span>
+          <span class="user-role">{{ session.user()?.roleName }}</span>
+        </span>
+        <i class="pi pi-angle-down"></i>
+      </button>
+      <p-menu #userMenu [popup]="true" [model]="userItems" appendTo="body" />
+    </header>
+    <main class="content">
+      <router-outlet />
+    </main>
+    <footer class="footer">Laurus Africa · Prime Brokerage</footer>
+  </div>
+</div>

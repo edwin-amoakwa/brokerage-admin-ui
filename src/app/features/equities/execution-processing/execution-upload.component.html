@@ -1,0 +1,67 @@
+<app-page-header title="Execution Uploads" subtitle="Upload exchange fills from Excel and match them to orders">
+  <a routerLink="/equities/execution-processing">Back to Execution Processing</a>
+</app-page-header>
+
+<div class="card">
+  <div class="table-toolbar">
+    <input type="file" accept=".xls,.xlsx" (change)="pick($event)" />
+    <p-button label="Upload file" icon="pi pi-upload" [disabled]="!upload" [loading]="busy" (onClick)="preview()" />
+    <span class="muted">Columns: execution date, order number, quantity, price (first row is a header)</span>
+  </div>
+</div>
+
+@if (rows) {
+  <div class="card">
+    <p-tabs value="ok">
+      <p-tablist>
+        <p-tab value="ok">Successful ({{ good.length }})</p-tab>
+        <p-tab value="failed">Failed ({{ failed.length }})</p-tab>
+      </p-tablist>
+      <p-tabpanels>
+        <p-tabpanel value="ok">
+          <div class="table-toolbar">
+            <span class="muted"></span>
+            <p-button label="Save" icon="pi pi-save" [disabled]="!good.length || saved" [loading]="busy" (onClick)="save()" />
+          </div>
+          <p-table [value]="good" size="small" [paginator]="good.length > 20" [rows]="20">
+            <ng-template #header>
+              <tr><th>Row</th><th>Date</th><th>Order No</th><th>Stock Code</th><th>Account</th><th class="text-right">Quantity</th>
+                <th class="text-right">Price</th><th class="text-right">Cost</th></tr>
+            </ng-template>
+            <ng-template #body let-r>
+              <tr>
+                <td>{{ r.rowNo }}</td>
+                <td>{{ r.valueDate | date: 'dd/MM/yyyy' }}</td>
+                <td>{{ r.orderNo }}</td>
+                <td>{{ r.stockCode }}</td>
+                <td>{{ r.accountName }}</td>
+                <td class="text-right">{{ r.quantity | number: '1.0-0' }}</td>
+                <td class="text-right">{{ r.executionPrice | number: '1.2-4' }}</td>
+                <td class="text-right">{{ r.executionCost | number: '1.2-2' }}</td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage><tr><td colspan="8">No row matched an order.</td></tr></ng-template>
+          </p-table>
+        </p-tabpanel>
+        <p-tabpanel value="failed">
+          <p-table [value]="failed" size="small" [paginator]="failed.length > 20" [rows]="20">
+            <ng-template #header>
+              <tr><th>Row</th><th>Date</th><th>Order No</th><th class="text-right">Quantity</th><th class="text-right">Price</th><th>Problem</th></tr>
+            </ng-template>
+            <ng-template #body let-r>
+              <tr>
+                <td>{{ r.rowNo }}</td>
+                <td>{{ r.valueDate | date: 'dd/MM/yyyy' }}</td>
+                <td>{{ r.orderNo }}</td>
+                <td class="text-right">{{ r.quantity | number: '1.0-0' }}</td>
+                <td class="text-right">{{ r.executionPrice | number: '1.2-4' }}</td>
+                <td class="tag-bad">{{ r.error }}</td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage><tr><td colspan="6">No failed rows.</td></tr></ng-template>
+          </p-table>
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
+  </div>
+}

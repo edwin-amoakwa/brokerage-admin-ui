@@ -1,0 +1,94 @@
+<app-page-header title="Beneficiaries" subtitle="Beneficiaries and next of kin for an investor">
+  @if (investor) { <p-button label="Add New Beneficiary" icon="pi pi-plus" (onClick)="create()" /> }
+</app-page-header>
+
+<div class="card">
+  <label class="field-label">Investor</label>
+  <app-entity-picker kind="investor" [value]="picked" (selected)="select($event)" />
+</div>
+
+@if (investor) {
+  <div class="card">
+    <div class="card-title">{{ investor.displayName }}</div>
+    <app-investor-detail [investor]="investor" mode="summary" />
+  </div>
+
+  <div class="card">
+    <div class="table-toolbar">
+      <div class="card-title">Beneficiaries</div>
+      <span class="muted">Total allocation {{ totalAllocation | number: '1.0-2' }}%</span>
+    </div>
+    <p-table [value]="rows" [loading]="loading" size="small">
+      <ng-template #header>
+        <tr><th>Beneficiary Name</th><th>Relationship</th><th>Email</th><th>Phone</th><th class="text-right">Allocation %</th><th>Next of Kin</th><th class="actions-col"></th></tr>
+      </ng-template>
+      <ng-template #body let-row>
+        <tr>
+          <td>{{ row.beneficiaryName }}</td>
+          <td>{{ row.relationshipName }}</td>
+          <td>{{ row.beneficiaryEmail }}</td>
+          <td>{{ row.beneficiaryPhone }}</td>
+          <td class="text-right">{{ row.percentageAllocation | number: '1.0-2' }}</td>
+          <td>{{ row.nokName }}</td>
+          <td class="actions-col">
+            <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="edit(row)" ariaLabel="Edit" />
+            <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="remove(row)" ariaLabel="Delete" />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="7">No beneficiaries recorded.</td></tr></ng-template>
+    </p-table>
+  </div>
+}
+
+<p-dialog [header]="record?.id ? 'Edit beneficiary' : 'New beneficiary'" [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '720px', maxWidth: '96vw' }" appendTo="body">
+  @if (record) {
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="field-label">Beneficiary Name<span class="req">*</span></label>
+        <input pInputText [(ngModel)]="record.beneficiaryName" class="w-full" />
+      </div>
+      <div class="col-md-6">
+        <label class="field-label">Relationship</label>
+        <p-select [(ngModel)]="record.relationship" [options]="relationships" optionLabel="itemName" optionValue="id" [showClear]="true" [filter]="true" class="w-full" appendTo="body" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Beneficiary Phone<span class="req">*</span></label>
+        <input pInputText [(ngModel)]="record.beneficiaryPhone" class="w-full" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Beneficiary Email</label>
+        <input pInputText type="email" [(ngModel)]="record.beneficiaryEmail" class="w-full" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Percentage Allocation<span class="req">*</span></label>
+        <p-inputnumber [(ngModel)]="record.percentageAllocation" mode="decimal" [min]="0" [max]="100" [maxFractionDigits]="2" suffix=" %" class="w-full" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Birth Date</label>
+        <input type="date" pInputText [(ngModel)]="record.birthDate" class="w-full" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">ID Number</label>
+        <input pInputText [(ngModel)]="record.idNumber" class="w-full" />
+      </div>
+      <div class="col-md-12"><div class="section-title">Next of Kin</div></div>
+      <div class="col-md-4">
+        <label class="field-label">Name</label>
+        <input pInputText [(ngModel)]="record.nokName" class="w-full" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Phone</label>
+        <input pInputText [(ngModel)]="record.nokPhone" class="w-full" />
+      </div>
+      <div class="col-md-4">
+        <label class="field-label">Email</label>
+        <input pInputText type="email" [(ngModel)]="record.nokEmail" class="w-full" />
+      </div>
+    </div>
+  }
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="dialogVisible = false" />
+    <p-button label="Save" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+  </ng-template>
+</p-dialog>

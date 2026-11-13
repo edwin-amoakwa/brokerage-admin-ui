@@ -1,0 +1,47 @@
+@if (!investor) {
+  <app-page-header title="Account Creation" subtitle="Verified investors waiting for their trading account" />
+  <div class="card">
+    <app-investor-table #table status="AWAITING_ACCOUNT" [showEdit]="true" editLabel="Process" editIcon="pi pi-id-card"
+                        emptyMessage="Every verified investor has a trading account." (edit)="open($event)" />
+  </div>
+} @else {
+  <app-page-header [title]="investor.displayName" [subtitle]="'Registration ' + (investor.investorCode || '')">
+    <p-button label="Close" severity="secondary" [outlined]="true" icon="pi pi-arrow-left" (onClick)="close()" />
+  </app-page-header>
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card">
+        <app-investor-kyc [investor]="investor" [showHeader]="true" />
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-title">Depository Account No</div>
+        <input pInputText [(ngModel)]="depAccountNo" class="w-full" [disabled]="investor.accountCreated" />
+        <div class="form-actions">
+          <p-button label="Save" severity="secondary" [outlined]="true" [loading]="savingDep" [disabled]="investor.accountCreated" (onClick)="saveDepository()" />
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Trading account</div>
+        @if (investor.accountCreated || investor.principalAccountCode) {
+          <div class="detail-grid">
+            <div><div class="label">Account Name</div><div class="value">{{ investor.principalAccountName }}</div></div>
+            <div><div class="label">Account Code</div><div class="value">{{ investor.principalAccountCode }}</div></div>
+          </div>
+          <p class="muted small">Manage it on the <a routerLink="/accounts/accounts">Accounts</a> page.</p>
+        } @else {
+          <p class="muted">Verified{{ investor.verifiedBy ? ' by ' + investor.verifiedBy : '' }}. Creating the account opens their
+            principal trading account (individual or corporate) on the default exchange with the depository number above.</p>
+        }
+        <div class="form-actions">
+          @if (investor.accountCreated) {
+            <span class="tag-ok"><i class="pi pi-check-circle"></i> Account created</span>
+          } @else {
+            <p-button label="Create Account" icon="pi pi-id-card" [loading]="creating" (onClick)="createAccount()" />
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+}
