@@ -1,10 +1,11 @@
 <app-page-header title="Notifications" subtitle="Messages the platform sends to clients, the channels they use, and what was delivered">
-  <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="loadTypes(); refreshDeliveries()" />
+  <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="loadTypes(); loadPush(); refreshDeliveries()" />
 </app-page-header>
 
 <p-tabs [(value)]="tab">
   <p-tablist>
     <p-tab value="types"><i class="pi pi-bell"></i> Notification types</p-tab>
+    <p-tab value="push"><i class="pi pi-megaphone"></i> Push notifications</p-tab>
     <p-tab value="log"><i class="pi pi-list"></i> Message log</p-tab>
   </p-tablist>
   <p-tabpanels>
@@ -55,6 +56,38 @@
           WhatsApp has no provider connected yet: WhatsApp messages are rendered and recorded in the message log (and the server log)
           but not sent. A test goes to your own user account's email and phone.
         </p>
+      </div>
+    </p-tabpanel>
+
+    <!-- PUSH NOTIFICATIONS -->
+    <p-tabpanel value="push">
+      <div class="card">
+        <div class="push-bar">
+          <p-button label="New push notification" icon="pi pi-plus" (onClick)="newPush()" />
+        </div>
+        <p-table [value]="pushes" [loading]="loadingPush" size="small" dataKey="id">
+          <ng-template #header>
+            <tr>
+              <th>Title</th>
+              <th>Message</th>
+              <th>Created</th>
+              <th class="actions-col"></th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-p>
+            <tr>
+              <td class="type-name">{{ p.title }}</td>
+              <td><div class="small muted push-message">{{ p.message }}</div></td>
+              <td class="nowrap">{{ p.createdDate | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td class="actions-col">
+                <p-button icon="pi pi-pencil" size="small" [text]="true" (onClick)="editPush(p)" pTooltip="Edit" />
+                <p-button icon="pi pi-send" size="small" [text]="true" (onClick)="publish(p)" pTooltip="Publish" />
+                <p-button icon="pi pi-trash" size="small" [text]="true" severity="danger" (onClick)="deletePush(p)" pTooltip="Delete" />
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template #emptymessage><tr><td colspan="4">No push notifications yet.</td></tr></ng-template>
+        </p-table>
       </div>
     </p-tabpanel>
 
@@ -201,4 +234,19 @@
       }
     }
   }
+</p-dialog>
+
+<!-- PUSH NOTIFICATION FORM -->
+<p-dialog [header]="pushForm?.id ? 'Edit push notification' : 'New push notification'" [visible]="!!pushForm" (visibleChange)="!$event && (pushForm = null)"
+          [modal]="true" [style]="{ width: '560px', maxWidth: '96vw' }" appendTo="body">
+  @if (pushForm) {
+    <label class="field-label">Title</label>
+    <input pInputText [(ngModel)]="pushForm.title" class="w-full" maxlength="255" />
+    <label class="field-label push-label">Message</label>
+    <textarea pTextarea [(ngModel)]="pushForm.message" rows="6" class="w-full"></textarea>
+  }
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="pushForm = null" />
+    <p-button label="Save" icon="pi pi-check" [loading]="savingPush" (onClick)="savePush()" />
+  </ng-template>
 </p-dialog>

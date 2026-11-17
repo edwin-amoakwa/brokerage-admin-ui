@@ -1,4 +1,14 @@
-<app-page-header title="Incomplete Registrations" subtitle="Investors who have not finished their bio data / KYC registration" />
+<app-page-header title="Incomplete Registrations" subtitle="Investors who have not finished their bio data / KYC registration">
+  <p-button label="Import CSD numbers" icon="pi pi-upload" severity="secondary" [outlined]="true" (onClick)="showCsdUpload = true" />
+  <p-button label="Export to Excel" icon="pi pi-file-excel" severity="secondary" [outlined]="true" [loading]="exporting" (onClick)="export()" />
+</app-page-header>
 <div class="card">
   <app-investor-table status="INCOMPLETE" emptyMessage="No investor has an incomplete registration." />
 </div>
+
+<p-dialog header="Import CSD numbers" [(visible)]="showCsdUpload" [modal]="true" [draggable]="false" [dismissableMask]="false"
+          [style]="{ width: '1100px' }" [breakpoints]="{ '1199px': '95vw' }" appendTo="body">
+  @if (showCsdUpload) {
+    <app-csd-upload (imported)="onImported()" />
+  }
+</p-dialog>

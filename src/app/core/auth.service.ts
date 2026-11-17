@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, map, shareReplay, finalize } from 'rxjs';
+import { Observable, catchError, finalize, map, of, shareReplay } from 'rxjs';
 import { ApiService } from './api.service';
 import { ApiResponse } from './api-response';
 import { SessionService } from './session.service';
@@ -44,6 +44,8 @@ export class AuthService {
             }
             return null;
           }),
+          // a rejected refresh (HTTP 401) is "no token", so the interceptor ends the session
+          catchError(() => of(null)),
           finalize(() => (this.refreshing$ = null)),
           shareReplay(1),
         );

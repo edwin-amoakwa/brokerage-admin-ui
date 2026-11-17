@@ -81,6 +81,26 @@ export class InvestorTableComponent implements OnChanges {
     this.load(this.lastEvent);
   }
 
+  /**
+   * Every investor matching the current status and search keyword, fetched
+   * page by page (for exports). Resolves null when any page fails.
+   */
+  async fetchAll(pageSize = 500): Promise<any[] | null> {
+    const all: any[] = [];
+    for (let pageNo = 1; ; pageNo++) {
+      const response = await this.api.get('investors', { keyword: this.keyword, status: this.status, pageNo, pageSize });
+      if (!response.success) {
+        return null;
+      }
+      const page: any[] = response.data || [];
+      all.push(...page);
+      const total = response.pager?.totalRecords ?? all.length;
+      if (page.length === 0 || all.length >= total) {
+        return all;
+      }
+    }
+  }
+
   async load(event: any) {
     this.initialised = true;
     this.lastEvent = event;

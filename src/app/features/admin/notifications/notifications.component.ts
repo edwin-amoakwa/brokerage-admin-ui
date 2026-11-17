@@ -50,6 +50,12 @@ export class NotificationsComponent implements OnInit {
   focused: HTMLInputElement | HTMLTextAreaElement | null = null;
   saving = false;
 
+  // push notifications
+  pushes: any[] = [];
+  loadingPush = false;
+  pushForm: { id?: string; title: string; message: string } | null = null;
+  savingPush = false;
+
   // delivery log
   deliveries: any[] = [];
   total = 0;
@@ -80,6 +86,7 @@ export class NotificationsComponent implements OnInit {
 
   ngOnInit() {
     this.loadTypes();
+    this.loadPush();
     this.loadSummary();
   }
 
@@ -177,6 +184,55 @@ export class NotificationsComponent implements OnInit {
     if (response.success) {
       this.replaceType(response.data);
       this.editing = null;
+    }
+  }
+
+  // ---------------------------------------------------- push notifications
+
+  async loadPush() {
+    this.loadingPush = true;
+    const response = await this.api.get('notifications/push');
+    this.loadingPush = false;
+    if (response.success) {
+      this.pushes = response.data;
+    }
+  }
+
+  newPush() {
+    this.pushForm = { title: '', message: '' };
+  }
+
+  editPush(row: any) {
+    this.pushForm = { id: row.id, title: row.title, message: row.message };
+  }
+
+  async savePush() {
+    if (!this.pushForm) {
+      return;
+    }
+    this.savingPush = true;
+    const response = await this.api.save('notifications/push', this.pushForm);
+    this.savingPush = false;
+    if (response.success) {
+      this.pushForm = null;
+      this.loadPush();
+    }
+  }
+
+  async publish(row: any) {
+    if (!(await this.notify.confirm(`Publish "${row.title}" to clients?`, 'Publish push notification', 'Publish'))) {
+      return;
+    }
+    await this.api.post(`notifications/push/${encodeURIComponent(row.id)}/publish`);
+  }
+
+  async deletePush(row: any) {
+    if (!(await this.notify.confirmDelete(`"${row.title}"`))) {
+      return;
+    }
+    const response = await this.api.delete(`notifications/push/${encodeURIComponent(row.id)}`);
+    if (response.success) {
+      this.loadPush();
     }
   }
 
