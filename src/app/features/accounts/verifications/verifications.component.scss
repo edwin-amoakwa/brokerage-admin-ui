@@ -1,0 +1,18 @@
+.returned {
+  border: 1px solid #f3d6a4; background: #fdf6e9; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px;
+  &.resubmitted { border-color: #c9d8ee; background: #f1f5fb; }
+  p { margin: 4px 0; }
+}
+.returned-head { font-weight: 600; font-size: 13px; i { margin-right: 6px; } }
+.note { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12.5px; background: #fff; border-radius: 8px; padding: 8px 10px; margin: 6px 0; }
+
+.intro { margin: 0 0 4px; }
+.presets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+.preset {
+  font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--app-border, #e3e7e5);
+  background: #fff; cursor: pointer; color: inherit;
+  &:hover { border-color: #0b3c2b; background: #eef5f1; }
+  &:focus-visible { outline: 2px solid #0b3c2b; outline-offset: 1px; }
+}
+.counter { text-align: right; margin-top: 4px; }
+.form-actions { flex-wrap: wrap; }

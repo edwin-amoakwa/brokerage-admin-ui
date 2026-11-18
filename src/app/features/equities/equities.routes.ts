@@ -6,6 +6,7 @@ import { ExecutionUploadComponent } from './execution-processing/execution-uploa
 import { ExecutionsComponent } from './executions/executions.component';
 import { OrderBatchesComponent } from './order-batches/order-batches.component';
 import { OrderUploadComponent } from './order-upload/order-upload.component';
+import { ExchangeLinkComponent } from './exchange-link/exchange-link.component';
 import { EquityOrdersComponent } from './orders/orders.component';
 import { TradesComponent } from './trades/trades.component';
 import { WorkingOrdersComponent } from './working-orders/working-orders.component';
@@ -24,4 +25,5 @@ export const EQUITIES_ROUTES: Routes = [
   { path: 'dividend-processing', component: CorporateActionProcessingComponent, data: { permission: 'equities.dividend-processing', title: 'Dividend Processing', kind: 'dividend' } },
   { path: 'bonus-issues', component: CorporateActionsComponent, data: { permission: 'equities.bonus-issues', title: 'Bonus Shares', kind: 'bonus' } },
   { path: 'bonus-processing', component: CorporateActionProcessingComponent, data: { permission: 'equities.bonus-processing', title: 'Bonus Processing', kind: 'bonus' } },
+  { path: 'exchange-link', component: ExchangeLinkComponent, data: { permission: ['equities.exchange-link', 'admin.exchange-link-settings'], title: 'Exchange Link' } },
 ];

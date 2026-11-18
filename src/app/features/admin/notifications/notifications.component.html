@@ -20,6 +20,7 @@
               <th class="text-center"><i class="pi pi-envelope"></i> Email</th>
               <th class="text-center"><i class="pi pi-mobile"></i> SMS</th>
               <th class="text-center"><i class="pi pi-whatsapp"></i> WhatsApp</th>
+              <th class="text-center"><i class="pi pi-bell"></i> In-app</th>
               <th class="text-right">Sent this month</th>
               <th class="actions-col"></th>
             </tr>
@@ -40,6 +41,10 @@
                 <p-toggleswitch [(ngModel)]="t.whatsapp" [disabled]="!t.enabled" (onChange)="toggle(t, 'whatsapp', $event.checked)" />
                 <div class="tiny muted">logged only</div>
               </td>
+              <td class="text-center">
+                <p-toggleswitch [(ngModel)]="t.inapp" [disabled]="!t.enabled" (onChange)="toggle(t, 'inapp', $event.checked)" />
+                <div class="tiny muted">app inbox</div>
+              </td>
               <td class="text-right">{{ t.sentThisMonth | number }}</td>
               <td class="actions-col">
                 <p-button icon="pi pi-pencil" label="Wording" size="small" [text]="true" (onClick)="edit(t)" />
@@ -50,11 +55,12 @@
               </td>
             </tr>
           </ng-template>
-          <ng-template #emptymessage><tr><td colspan="7">No notification types.</td></tr></ng-template>
+          <ng-template #emptymessage><tr><td colspan="8">No notification types.</td></tr></ng-template>
         </p-table>
         <p class="small muted note">
           WhatsApp has no provider connected yet: WhatsApp messages are rendered and recorded in the message log (and the server log)
-          but not sent. A test goes to your own user account's email and phone.
+          but not sent. In-app puts the message in the investor's inbox (the bell in the client app), using the email subject and body.
+          A test goes to your own user account's email and phone; in-app is skipped for tests because staff have no app inbox.
         </p>
       </div>
     </p-tabpanel>
@@ -143,7 +149,7 @@
               </td>
             </tr>
           </ng-template>
-          <ng-template #emptymessage><tr><td colspan="7">No messages match.</td></tr></ng-template>
+          <ng-template #emptymessage><tr><td [attr.colspan]="channelKeys.length + 4">No messages match.</td></tr></ng-template>
         </p-table>
       </div>
     </p-tabpanel>
@@ -162,6 +168,7 @@
     </div>
     <div class="row g-4">
       <div class="col-lg-7">
+        <p class="small muted inapp-hint"><i class="pi pi-bell"></i> The in-app inbox shows the email subject and body.</p>
         <div class="field-head"><label class="field-label"><i class="pi pi-envelope"></i> Email subject</label>
           <a class="small clickable" (click)="restoreDefault('title')">Default</a></div>
         <input pInputText #fTitle [(ngModel)]="wording.title" class="w-full" (focus)="activeField = 'title'; focused = fTitle" />
@@ -225,7 +232,10 @@
               <p-button label="Retry" icon="pi pi-replay" size="small" [text]="true" (onClick)="retry(viewing, c.id)" />
             }
           </div>
-          @if (c.key === 'email' && viewing.emailSubject) { <div class="subject">{{ viewing.emailSubject }}</div> }
+          @if ((c.key === 'email' || c.key === 'inapp') && viewing.emailSubject) { <div class="subject">{{ viewing.emailSubject }}</div> }
+          @if (c.key === 'inapp' && viewing.inappStatus === 'SENT') {
+            <p class="small muted">{{ viewing.inappReadAt ? 'Read by the investor ' + (viewing.inappReadAt | date: 'dd/MM/yyyy HH:mm') : 'Not read yet' }}</p>
+          }
           <div class="message-text">{{ viewing[c.key + 'Text'] }}</div>
           @if (viewing[c.key + 'Note']) {
             <p class="small muted">{{ viewing[c.key + 'Note'] }}@if (viewing[c.key + 'Attempts'] > 1) { · {{ viewing[c.key + 'Attempts'] }} attempts }</p>

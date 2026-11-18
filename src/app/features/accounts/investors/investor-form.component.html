@@ -50,18 +50,21 @@
             <div class="col-md-2"><label class="lbl" for="f-title">Title</label>
               <p-select inputId="f-title" [(ngModel)]="record.title" [options]="opt['Title'] || []" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
             <div class="col-md-4"><label class="lbl" for="f-first">First name <span class="req">*</span></label>
-              <input id="f-first" pInputText [(ngModel)]="record.firstName" class="w-full" /></div>
+              <input id="f-first" pInputText [(ngModel)]="record.firstName" class="w-full" [readonly]="idLocked" /></div>
             <div class="col-md-3"><label class="lbl" for="f-sur">Surname <span class="req">*</span></label>
-              <input id="f-sur" pInputText [(ngModel)]="record.surname" class="w-full" (blur)="checkDuplicates()" /></div>
+              <input id="f-sur" pInputText [(ngModel)]="record.surname" class="w-full" (blur)="checkDuplicates()" [readonly]="idLocked" /></div>
             <div class="col-md-3"><label class="lbl" for="f-oth">Other names</label>
-              <input id="f-oth" pInputText [(ngModel)]="record.othernames" class="w-full" /></div>
+              <input id="f-oth" pInputText [(ngModel)]="record.othernames" class="w-full" [readonly]="idLocked" /></div>
+            @if (idLocked) {
+              <div class="col-12"><p class="locked-note"><i class="pi pi-lock"></i> Name, date of birth and gender come from the Ghana Card verified with NIA and cannot be changed.</p></div>
+            }
 
             <div class="col-md-3"><label class="lbl" for="f-dob">Date of birth <span class="req">*</span></label>
-              <input id="f-dob" type="date" pInputText [(ngModel)]="record.birthDate" class="w-full" (change)="checkDuplicates()" /></div>
+              <input id="f-dob" type="date" pInputText [(ngModel)]="record.birthDate" class="w-full" (change)="checkDuplicates()" [readonly]="idLocked" /></div>
             <div class="col-md-3"><label class="lbl" for="f-pob">Place of birth</label>
               <input id="f-pob" pInputText [(ngModel)]="record.birthPlace" class="w-full" /></div>
             <div class="col-md-3"><label class="lbl" for="f-gen">Gender</label>
-              <p-select inputId="f-gen" [(ngModel)]="record.gender" [options]="opt['Gender'] || []" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+              <p-select inputId="f-gen" [(ngModel)]="record.gender" [options]="opt['Gender'] || []" optionLabel="itemName" optionValue="id" [showClear]="!idLocked" [readonly]="idLocked" placeholder="Select" class="w-full" appendTo="body" /></div>
             <div class="col-md-3"><label class="lbl" for="f-mai">Maiden name</label>
               <input id="f-mai" pInputText [(ngModel)]="record.maidenName" class="w-full" /></div>
 
@@ -89,17 +92,22 @@
       <!-- IDENTIFICATION -->
       <section class="panel" id="sec-identification">
         <h2>Identification</h2>
+        @if (idLocked) {
+          <p class="locked-note"><i class="pi pi-lock"></i> Ghana Card verified with NIA{{ record.idVerifiedDate ? ' on ' + (record.idVerifiedDate | date: 'dd MMM y') : '' }}. The ID details cannot be changed.</p>
+        }
         <div class="row g-3">
           <div class="col-md-3"><label class="lbl" for="f-idt">ID type <span class="req">*</span></label>
-            <p-select inputId="f-idt" [(ngModel)]="record.validId" [options]="opt['IdType'] || []" optionLabel="itemName" optionValue="id" [showClear]="true" placeholder="Select" class="w-full" appendTo="body" /></div>
+            <p-select inputId="f-idt" [(ngModel)]="record.validId" [options]="opt['IdType'] || []" optionLabel="itemName" optionValue="id" [showClear]="!idLocked" [readonly]="idLocked" placeholder="Select" class="w-full" appendTo="body" /></div>
           <div class="col-md-3"><label class="lbl" for="f-idn">ID number <span class="req">*</span></label>
-            <input id="f-idn" pInputText [(ngModel)]="record.idNumber" class="w-full" (blur)="checkDuplicates()" /></div>
+            <input id="f-idn" pInputText [(ngModel)]="record.idNumber" class="w-full" (blur)="checkDuplicates()" [readonly]="idLocked" /></div>
           <div class="col-md-2"><label class="lbl" for="f-idi">Issue date</label>
-            <input id="f-idi" type="date" pInputText [(ngModel)]="record.idIssueDate" class="w-full" /></div>
+            <input id="f-idi" type="date" pInputText [(ngModel)]="record.idIssueDate" class="w-full" [readonly]="idLocked" /></div>
           <div class="col-md-2"><label class="lbl" for="f-idp">Place of issue</label>
-            <input id="f-idp" pInputText [(ngModel)]="record.placeOfIdIssued" class="w-full" /></div>
+            <input id="f-idp" pInputText [(ngModel)]="record.placeOfIdIssued" class="w-full" [readonly]="idLocked" /></div>
           <div class="col-md-2"><label class="lbl" for="f-ide">Expiry date</label>
-            <input id="f-ide" type="date" pInputText [(ngModel)]="record.idExpiryDate" class="w-full" /></div>
+            <input id="f-ide" type="date" pInputText [(ngModel)]="record.idExpiryDate" class="w-full" [readonly]="idLocked" /></div>
+          <div class="col-md-4"><label class="lbl" for="f-pass">Passport number</label>
+            <input id="f-pass" pInputText [(ngModel)]="record.passportNumber" class="w-full" maxlength="20" /></div>
           <div class="col-md-4"><label class="lbl" for="f-tin">TIN</label>
             <input id="f-tin" pInputText [(ngModel)]="record.tinNumber" class="w-full" /></div>
           @if (isForeigner) {

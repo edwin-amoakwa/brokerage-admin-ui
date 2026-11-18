@@ -24,6 +24,10 @@ export interface KycSection {
 const isCorporate = (i: any) => i?.investorType === 'CORPORATE';
 const isIndividual = (i: any) => !isCorporate(i);
 const isForeigner = (i: any) => i?.residentialStatus === 'RESIDENT_FOREIGNER' || i?.residentialStatus === 'NON_RESIDENT_FOREIGNER' || !!i?.residencePermitNo;
+// The Ghana Card is held as the ID number, with ID type National ID.
+const hasGhanaCard = (i: any) => i?.validId === 'NATIONAL_ID' || i?.residentialStatus === 'RESIDENT_NATIONAL';
+// Optional for a resident Ghanaian, so an empty one is not a gap; everyone else gives one at KYC.
+const passportExpected = (i: any) => !!i?.passportNumber || (!!i?.residentialStatus && i.residentialStatus !== 'RESIDENT_NATIONAL');
 const foreignTies = (i: any) => !!(i?.foreignCitizen || i?.hasForeignPassport || i?.hasGreenCard || i?.foreignResident);
 
 export const KYC_SECTIONS: KycSection[] = [
@@ -57,6 +61,8 @@ export const KYC_SECTIONS: KycSection[] = [
     fields: [
       { label: 'ID type', key: 'validIdName', required: true },
       { label: 'ID number', key: 'idNumber', required: true },
+      { label: 'ID verified (NIA)', key: 'idVerified', type: 'bool', when: hasGhanaCard },
+      { label: 'Passport number', key: 'passportNumber', when: passportExpected },
       { label: 'Issue date', key: 'idIssueDate', type: 'date' },
       { label: 'Place of issue', key: 'placeOfIdIssued' },
       { label: 'Expiry date', key: 'idExpiryDate', type: 'date' },

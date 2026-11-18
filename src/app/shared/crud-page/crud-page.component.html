@@ -1,7 +1,13 @@
-<app-page-header [title]="config.title" [subtitle]="config.subtitle || ''">
+<ng-template #actions>
   <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="reload()" />
   <p-button [label]="'Add ' + config.noun" icon="pi pi-plus" (onClick)="create()" />
-</app-page-header>
+</ng-template>
+
+@if (!embedded) {
+  <app-page-header [title]="config.title" [subtitle]="config.subtitle || ''">
+    <ng-container [ngTemplateOutlet]="actions" />
+  </app-page-header>
+}
 
 <div class="card">
   <div class="table-toolbar">
@@ -9,6 +15,9 @@
       <input pInputText [(ngModel)]="keyword" placeholder="Search" (keyup.enter)="reload()" />
     </span>
     <span class="muted">{{ total }} record(s)</span>
+    @if (embedded) {
+      <ng-container [ngTemplateOutlet]="actions" />
+    }
   </div>
   <p-table [value]="rows" [lazy]="paginated" (onLazyLoad)="load($event)" [paginator]="true" [rows]="20" [totalRecords]="total"
            [loading]="loading" dataKey="id" size="small" [first]="first" [rowsPerPageOptions]="[20, 50, 100]">

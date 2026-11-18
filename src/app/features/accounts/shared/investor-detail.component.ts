@@ -52,6 +52,7 @@ const IDENTIFICATION: DetailGroup = {
   fields: [
     { label: 'ID Type', key: 'validIdName' },
     { label: 'ID Number', key: 'idNumber' },
+    { label: 'Passport Number', key: 'passportNumber' },
     { label: 'Issue Date', key: 'idIssueDate', type: 'date' },
     { label: 'Place of Issue', key: 'placeOfIdIssued' },
     { label: 'Expiry Date', key: 'idExpiryDate', type: 'date' },

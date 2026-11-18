@@ -1,1 +1,42 @@
-<app-crud-page [config]="config" />
+<app-page-header title="Banks" subtitle="Banks and their branches, used for investor and firm bank accounts" />
+
+<!-- Branches, one bank at a time: pick the bank, see its branches, add to it. -->
+<ng-template #branchView>
+  <div class="card bank-picker">
+    <label class="field-label" for="branch-bank">Bank</label>
+    <p-select inputId="branch-bank" [ngModel]="selectedBankId" (ngModelChange)="selectBank($event)" [options]="bankOptions"
+              optionLabel="itemName" optionValue="id" [filter]="true" filterPlaceholder="Type to find a bank" [showClear]="true"
+              placeholder="Select a bank" class="bank-picker__select" appendTo="body" />
+    @if (!selectedBankId) {
+      <p class="muted bank-picker__hint">Select a bank to see its branches and add a new one.</p>
+    } @else {
+      <p class="muted bank-picker__hint">Branches of <strong>{{ selectedBankName }}</strong>. Use "Add bank branch" to add one to this bank.</p>
+    }
+  </div>
+
+  <!-- Rebuilt when the bank changes, so the list always belongs to the selected bank. -->
+  @for (bankId of selectedBankId ? [selectedBankId] : []; track bankId) {
+    @if (branches) { <app-crud-page [config]="branches" [embedded]="true" /> }
+  }
+</ng-template>
+
+@if (canBanks && canBranches) {
+  <p-tabs [value]="tab" (valueChange)="selectTab($event)">
+    <p-tablist>
+      <p-tab value="banks"><i class="pi pi-building-columns"></i> Banks</p-tab>
+      <p-tab value="branches"><i class="pi pi-map-marker"></i> Branches</p-tab>
+    </p-tablist>
+    <p-tabpanels>
+      <p-tabpanel value="banks">
+        @if (tab === 'banks') { <app-crud-page [config]="banks" [embedded]="true" /> }
+      </p-tabpanel>
+      <p-tabpanel value="branches">
+        @if (tab === 'branches') { <ng-container [ngTemplateOutlet]="branchView" /> }
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+} @else if (canBanks) {
+  <app-crud-page [config]="banks" [embedded]="true" />
+} @else if (canBranches) {
+  <ng-container [ngTemplateOutlet]="branchView" />
+}

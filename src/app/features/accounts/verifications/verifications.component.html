@@ -16,30 +16,77 @@
     </div>
     <div class="col-lg-4">
       <div class="card">
-        <div class="card-title">Depository Account No</div>
-        <input pInputText [(ngModel)]="depAccountNo" class="w-full" [disabled]="investor.bioDataVerified" />
-        <div class="form-actions">
-          <p-button label="Save" severity="secondary" [outlined]="true" [loading]="savingDep" [disabled]="investor.bioDataVerified" (onClick)="saveDepository()" />
-        </div>
-      </div>
-      <div class="card">
         <div class="card-title">Verification</div>
         @if (investor.bioDataVerified) {
           <p class="muted">Verified{{ investor.verifiedBy ? ' by ' + investor.verifiedBy : '' }}. The investor has been sent the
             verification-completed message and is now on the
             <a routerLink="/accounts/account-creation">Account Creation</a> page.</p>
+        } @else if (!investor.bioDataCompleted) {
+          <div class="returned" role="status">
+            <div class="returned-head"><i class="pi pi-undo"></i> Returned to the investor</div>
+            <p class="small muted">
+              @if (investor.returnedDate) { {{ investor.returnedDate | date: 'd MMM yyyy' }} }
+              @if (investor.returnedBy) { · by {{ investor.returnedBy }} }
+            </p>
+            @if (investor.correctionNote) { <div class="note">{{ investor.correctionNote }}</div> }
+            <p class="small muted">Their profile is open for editing in the app. It comes back to this queue when they submit it again.</p>
+          </div>
         } @else {
+          @if (investor.returnedDate) {
+            <div class="returned resubmitted">
+              <div class="returned-head"><i class="pi pi-replay"></i> Resubmitted after correction</div>
+              <p class="small muted">Returned {{ investor.returnedDate | date: 'd MMM yyyy' }}@if (investor.returnedBy) { by {{ investor.returnedBy }} }. They were asked to:</p>
+              @if (investor.correctionNote) { <div class="note">{{ investor.correctionNote }}</div> }
+            </div>
+          }
           <p class="muted">Verifying marks the investor as verified (stamped with your name and today's date), sends them the
             verification-completed message by email, SMS and WhatsApp, and moves them to Account Creation.</p>
+          <p class="muted">If something needs fixing, return the registration to the investor with what to correct.</p>
         }
         <div class="form-actions">
           @if (investor.bioDataVerified) {
             <span class="tag-ok"><i class="pi pi-check-circle"></i> Verified</span>
-          } @else {
+          } @else if (awaitingReview) {
+            <p-button label="Return for Correction" icon="pi pi-undo" severity="danger" [outlined]="true" [disabled]="!canReturn"
+                      [title]="canReturn ? '' : 'No email address or mobile number on file to tell the investor'" (onClick)="openReturn()" />
             <p-button label="Verify for Account Creation" icon="pi pi-verified" [loading]="verifying" (onClick)="verify()" />
+          } @else {
+            <p-button label="Back to queue" severity="secondary" [outlined]="true" icon="pi pi-list" (onClick)="close()" />
           }
         </div>
+      </div>
+      <div class="card">
+        <app-investor-messages #messages [investor]="investor" />
       </div>
     </div>
   </div>
 }
+
+
+<p-dialog header="Return for correction" [(visible)]="returning" [modal]="true" [style]="{ width: '640px', maxWidth: '96vw' }" appendTo="body">
+  @if (returning) {
+    <p class="muted small intro">
+      <strong>{{ investor.displayName }}</strong>'s registration goes back to them to edit and leaves this queue.
+      They are told what to correct, and it comes back here when they submit it again.
+    </p>
+
+    <label class="field-label" for="return-text">What needs correcting<span class="req">*</span></label>
+    <div class="presets">
+      <span class="small muted">Quick add:</span>
+      @for (p of presets; track p.label) {
+        <button type="button" class="preset" (click)="addPreset(p.text)">{{ p.label }}</button>
+      }
+    </div>
+    <textarea pTextarea id="return-text" [(ngModel)]="returnForm.message" rows="6" class="w-full" [maxlength]="maxMessage"
+              placeholder="e.g. The photo of your ID is blurry. Please upload a clear photo."></textarea>
+    <div class="counter small muted">{{ returnForm.message.length }} / {{ maxMessage }}</div>
+
+    <label class="field-label">Tell them by<span class="req">*</span></label>
+    <app-channel-picker [investor]="investor" [(channels)]="returnForm.channels" />
+  }
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="returning = false" />
+    <p-button label="Return to Investor" icon="pi pi-undo" severity="danger" [loading]="sendingReturn" [disabled]="!canSendReturn"
+              (onClick)="sendReturn()" />
+  </ng-template>
+</p-dialog>

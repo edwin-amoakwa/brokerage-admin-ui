@@ -109,7 +109,13 @@
             <div class="panel-head"><h2>Identification</h2><button type="button" class="link" (click)="edit('identification')">Edit</button></div>
             <dl class="pairs">
               <dt>ID type</dt><dd>{{ inv.validIdName || '-' }}</dd>
-              <dt>ID number</dt><dd>{{ inv.idNumber || '-' }}</dd>
+              <dt>ID number</dt>
+              <dd>{{ inv.idNumber || '-' }}
+                @if (inv.idNumber && inv.validId === 'NATIONAL_ID') {
+                  <span class="validity" [class]="inv.idVerified ? 'ok' : 'warn'">· {{ inv.idVerified ? 'Verified with NIA' + (inv.idVerifiedDate ? ' on ' + (inv.idVerifiedDate | date: 'dd MMM y') : '') : 'Not verified' }}</span>
+                }
+              </dd>
+              <dt>Passport</dt><dd>{{ inv.passportNumber || '-' }}</dd>
               <dt>Issued</dt><dd>{{ (inv.idIssueDate | date: 'dd MMM y') || '-' }}{{ inv.placeOfIdIssued ? ' · ' + inv.placeOfIdIssued : '' }}</dd>
               <dt>Expires</dt>
               <dd>{{ (inv.idExpiryDate | date: 'dd MMM y') || '-' }}

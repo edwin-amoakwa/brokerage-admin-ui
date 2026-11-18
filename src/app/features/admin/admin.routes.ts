@@ -10,9 +10,7 @@ import { EquityPricesComponent } from './equity-prices/equity-prices.component';
 import { FeeTypesComponent } from './fee-types/fee-types.component';
 import { ExchangeFeesComponent } from './exchange-fees/exchange-fees.component';
 import { BankAccountsComponent } from './bank-accounts/bank-accounts.component';
-import { BankBranchesComponent } from './bank-branches/bank-branches.component';
 import { RiskQuestionsComponent } from './risk-questions/risk-questions.component';
-import { MessagingTemplatesComponent } from './messaging-templates/messaging-templates.component';
 import { NotificationsComponent } from './notifications/notifications.component';
 import { RolesComponent } from './roles/roles.component';
 import { UsersComponent } from './users/users.component';
@@ -41,9 +39,10 @@ export const ADMIN_ROUTES: Routes = [
   { path: 'fixed-income-securities', component: FixedIncomeSecuritiesComponent, data: { permission: 'admin.fixed-income-securities', title: 'Fixed Income Securities' } },
   { path: 'fixed-income-prices', component: FixedIncomePricesComponent, data: { permission: 'admin.fixed-income-prices', title: 'Fixed Income Market Prices' } },
   { path: 'bank-accounts', component: BankAccountsComponent, data: { permission: 'admin.bank-accounts', title: 'Bank Accounts' } },
-  { path: 'banks', component: BanksComponent, data: { permission: 'admin.banks', title: 'Banks' } },
-  { path: 'bank-branches', component: BankBranchesComponent, data: { permission: 'admin.bank-branches', title: 'Bank Branches' } },
+  { path: 'banks', component: BanksComponent, data: { permission: ['admin.banks', 'admin.bank-branches'], title: 'Banks' } },
+  { path: 'bank-branches', redirectTo: 'banks?tab=branches' },
   { path: 'risk-questions', component: RiskQuestionsComponent, data: { permission: 'admin.risk-questions', title: 'Risk Assessment Questions' } },
   { path: 'notifications', component: NotificationsComponent, data: { permission: 'admin.notifications', title: 'Notifications' } },
-  { path: 'messaging-templates', component: MessagingTemplatesComponent, data: { permission: 'admin.messaging-templates', title: 'Messaging Templates' } },
+  // Messaging Templates was merged into Notifications; old links land there.
+  { path: 'messaging-templates', redirectTo: 'notifications', pathMatch: 'full' },
 ];

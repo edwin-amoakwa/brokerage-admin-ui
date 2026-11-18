@@ -1,4 +1,4 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { Component, Input, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -51,6 +51,8 @@ export interface CrudConfig {
   /** Server paging and keyword search (default true). */
   paginated?: boolean;
   defaults?: () => any;
+  /** Extra query parameters sent with every list request, e.g. { bankId } to list one bank's branches. */
+  params?: Record<string, any>;
   /** Lookup lists to drop from the cache after a save or delete. */
   invalidates?: string[];
   canDelete?: boolean;
@@ -63,7 +65,7 @@ export interface CrudConfig {
  */
 @Component({
   selector: 'app-crud-page',
-  imports: [FormsModule, ButtonModule, CheckboxModule, DialogModule, InputNumberModule, InputTextModule, SelectModule, TableModule, TagModule, TextareaModule, DatePipe, DecimalPipe, PageHeaderComponent],
+  imports: [FormsModule, ButtonModule, CheckboxModule, DialogModule, InputNumberModule, InputTextModule, SelectModule, TableModule, TagModule, TextareaModule, DatePipe, DecimalPipe, NgTemplateOutlet, PageHeaderComponent],
   templateUrl: './crud-page.component.html',
   styleUrl: './crud-page.component.scss',
 })
@@ -74,6 +76,8 @@ export class CrudPageComponent implements OnInit {
   session = inject(SessionService);
 
   @Input({ required: true }) config!: CrudConfig;
+  /** Inside another page (e.g. a tab): no page header; Refresh / Add sit in the table toolbar. */
+  @Input() embedded = false;
 
   rows: any[] = [];
   total = 0;
@@ -116,7 +120,7 @@ export class CrudPageComponent implements OnInit {
   async load(event: any) {
     this.lastEvent = event;
     this.loading = true;
-    const params: any = { keyword: this.keyword };
+    const params: any = { ...(this.config.params || {}), keyword: this.keyword };
     if (this.paginated) {
       Object.assign(params, pageParams(event));
     } else {

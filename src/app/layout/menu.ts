@@ -8,7 +8,8 @@ export interface MenuItem {
   route: string;
   /** PrimeIcons class shown beside the label. */
   icon: string;
-  permission: string;
+  /** One page key, or several: the item shows when the user has any of them. */
+  permission: string | string[];
 }
 
 export interface MenuGroup {
@@ -165,6 +166,12 @@ export const MENU: MenuGroup[] = [
         "route": "/equities/bonus-processing",
         "icon": "pi pi-sparkles",
         "permission": "equities.bonus-processing"
+      },
+      {
+        "label": "Exchange Link",
+        "route": "/equities/exchange-link",
+        "icon": "pi pi-arrow-right-arrow-left",
+        "permission": ["equities.exchange-link", "admin.exchange-link-settings"]
       }
     ]
   },
@@ -389,16 +396,10 @@ export const MENU: MenuGroup[] = [
         "permission": "admin.bank-accounts"
       },
       {
-        "label": "Banks",
+        "label": "Banks & Branches",
         "route": "/admin/banks",
         "icon": "pi pi-building-columns",
-        "permission": "admin.banks"
-      },
-      {
-        "label": "Bank Branches",
-        "route": "/admin/bank-branches",
-        "icon": "pi pi-map-marker",
-        "permission": "admin.bank-branches"
+        "permission": ["admin.banks", "admin.bank-branches"]
       },
       {
         "label": "Risk Assessment Questions",
@@ -411,12 +412,6 @@ export const MENU: MenuGroup[] = [
         "route": "/admin/notifications",
         "icon": "pi pi-bell",
         "permission": "admin.notifications"
-      },
-      {
-        "label": "Messaging Templates",
-        "route": "/admin/messaging-templates",
-        "icon": "pi pi-envelope",
-        "permission": "admin.messaging-templates"
       }
     ]
   }

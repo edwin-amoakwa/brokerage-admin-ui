@@ -70,6 +70,7 @@ export class NotificationsComponent implements OnInit {
     { id: 'EMAIL', itemName: 'Email' },
     { id: 'SMS', itemName: 'SMS' },
     { id: 'WHATSAPP', itemName: 'WhatsApp' },
+    { id: 'IN_APP', itemName: 'In-app' },
   ];
   readonly statuses = [
     { id: 'PENDING', itemName: 'Pending' },
@@ -82,6 +83,7 @@ export class NotificationsComponent implements OnInit {
     { key: 'email', label: 'Email', icon: 'pi pi-envelope', id: 'EMAIL' },
     { key: 'sms', label: 'SMS', icon: 'pi pi-mobile', id: 'SMS' },
     { key: 'whatsapp', label: 'WhatsApp', icon: 'pi pi-whatsapp', id: 'WHATSAPP' },
+    { key: 'inapp', label: 'In-app', icon: 'pi pi-bell', id: 'IN_APP' },
   ];
 
   ngOnInit() {
@@ -101,7 +103,7 @@ export class NotificationsComponent implements OnInit {
     }
   }
 
-  async toggle(type: any, field: 'enabled' | 'email' | 'sms' | 'whatsapp', value: boolean) {
+  async toggle(type: any, field: 'enabled' | 'email' | 'sms' | 'whatsapp' | 'inapp', value: boolean) {
     const response = await this.api.put(`notifications/types/${encodeURIComponent(type.code)}`, { [field]: value });
     if (response.success) {
       this.replaceType(response.data);
@@ -247,6 +249,7 @@ export class NotificationsComponent implements OnInit {
         { label: 'Email sent', value: s.emailSent, format: 'number', foot: 'This month' },
         { label: 'SMS sent', value: s.smsSent, format: 'number', foot: 'This month' },
         { label: 'WhatsApp logged', value: s.whatsappSent, format: 'number', foot: 'Logged only, no provider yet' },
+        { label: 'In-app delivered', value: s.inappSent, format: 'number', foot: 'To investor inboxes this month' },
         { label: 'Failed', value: s.failed, format: 'number', tone: s.failed ? 'bad' : '', foot: 'Channels this month' },
         { label: 'Cancelled', value: s.cancelled, format: 'number', foot: 'No address, or channel off' },
         { label: 'Waiting to send', value: s.pending, format: 'number', tone: s.pending ? 'warn' : '' },
@@ -315,6 +318,6 @@ export class NotificationsComponent implements OnInit {
   }
 
   channelAddress(row: any, key: string): string {
-    return key === 'email' ? row.recipientEmail : row.recipientPhone;
+    return key === 'email' ? row.recipientEmail : key === 'inapp' ? 'App inbox' : row.recipientPhone;
   }
 }

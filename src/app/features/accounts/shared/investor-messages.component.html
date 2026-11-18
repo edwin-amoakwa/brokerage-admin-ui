@@ -1,0 +1,99 @@
+<div class="msg-head">
+  <div class="card-title">Messages</div>
+  <p-button label="Message investor" icon="pi pi-send" size="small" [outlined]="true" [disabled]="!reachable"
+            [pTooltip]="reachable ? '' : 'No email address or mobile number on file'" (onClick)="compose()" />
+</div>
+
+@if (loading && !messages.length) {
+  <p class="muted small">Loading…</p>
+} @else if (!messages.length) {
+  <p class="muted small">Nothing has been sent to this investor yet.</p>
+} @else {
+  <ul class="msg-list">
+    @for (m of messages; track m.id) {
+      <li class="msg" [class.open]="expanded === m.id">
+        <button type="button" class="msg-row" (click)="toggle(m)" [attr.aria-expanded]="expanded === m.id">
+          <span class="msg-main">
+            <span class="msg-type">{{ m.typeLabel }}</span>
+            <span class="small muted">{{ m.createdAt | date: 'd MMM yyyy, HH:mm' }}@if (m.actor) { · {{ m.actor }} }</span>
+          </span>
+          <span class="msg-status">
+            @for (c of channelKeys; track c.key) {
+              @if (m[c.key + 'Status']) {
+                <span class="ch" [class]="'ch st-' + m[c.key + 'Status']" [pTooltip]="channelTip(m, c.key, c.label)" tooltipPosition="top"
+                      [attr.aria-label]="channelTip(m, c.key, c.label)">
+                  <i [class]="c.icon"></i><i [class]="statusIcon(m[c.key + 'Status'])"></i>
+                </span>
+              }
+            }
+          </span>
+          <i class="pi chevron" [class.pi-chevron-down]="expanded !== m.id" [class.pi-chevron-up]="expanded === m.id"></i>
+        </button>
+
+        @if (expanded === m.id) {
+          <div class="msg-detail">
+            @for (c of channelKeys; track c.key) {
+              @if (m[c.key + 'Status']) {
+                <div class="channel-block">
+                  <div class="channel-head">
+                    <span class="channel-name"><i [class]="c.icon"></i> {{ c.label }}</span>
+                    <span class="ch" [class]="'ch st-' + m[c.key + 'Status']">{{ m[c.key + 'StatusName'] }}</span>
+                    <span class="grow"></span>
+                    @if (m[c.key + 'CanRetry']) {
+                      <p-button label="Retry" icon="pi pi-replay" size="small" [text]="true" (onClick)="retry(m, c.id)" />
+                    }
+                  </div>
+                  <div class="small muted">
+                    {{ address(m, c.key) || 'no address' }}
+                    @if (m[c.key + 'SentAt']) { · sent {{ m[c.key + 'SentAt'] | date: 'd MMM, HH:mm' }} }
+                    @if (m[c.key + 'Note']) { · {{ m[c.key + 'Note'] }} }
+                    @if (c.key === 'inapp' && m.inappStatus === 'SENT') {
+                      · <strong>{{ m.inappReadAt ? 'Read ' + (m.inappReadAt | date: 'd MMM, HH:mm') : 'Not read yet' }}</strong>
+                    }
+                  </div>
+                  @if (m[c.key + 'Status'] !== 'CANCELLED') {
+                    @if ((c.key === 'email' || c.key === 'inapp') && m.emailSubject) { <div class="subject">{{ m.emailSubject }}</div> }
+                    <div class="message-text">{{ m[c.key + 'Text'] }}</div>
+                  }
+                </div>
+              }
+            }
+          </div>
+        }
+      </li>
+    }
+  </ul>
+}
+
+<p-dialog header="Message investor" [(visible)]="composing" [modal]="true" [style]="{ width: '620px', maxWidth: '96vw' }" appendTo="body">
+  @if (composing) {
+    <p class="muted small to-line">To <strong>{{ investor.displayName }}</strong></p>
+
+    <label class="field-label">Send by<span class="req">*</span></label>
+    <app-channel-picker [investor]="investor" [(channels)]="form.channels" />
+
+    @if (form.channels.includes('EMAIL') || form.channels.includes('IN_APP')) {
+      <label class="field-label" for="msg-subject">Subject <span class="muted">(email and in-app)</span></label>
+      <input pInputText id="msg-subject" [(ngModel)]="form.subject" class="w-full" [maxlength]="maxSubject"
+             placeholder="A message from us" />
+    }
+
+    <label class="field-label" for="msg-text">Message<span class="req">*</span></label>
+    <div class="presets">
+      <span class="small muted">Quick add:</span>
+      @for (p of presets; track p.label) {
+        <button type="button" class="preset" (click)="addPreset(p.text)">{{ p.label }}</button>
+      }
+    </div>
+    <textarea pTextarea id="msg-text" [(ngModel)]="form.message" rows="7" class="w-full" [maxlength]="maxMessage"
+              placeholder="Write your message. A greeting and sign-off are added for you."></textarea>
+    <div class="counter small muted">
+      <span>{{ form.message.length }} / {{ maxMessage }}</span>
+      @if (form.channels.includes('SMS')) { <span>· about {{ smsSegments }} SMS</span> }
+    </div>
+  }
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [outlined]="true" (onClick)="composing = false" />
+    <p-button label="Send" icon="pi pi-send" [loading]="sending" [disabled]="!canSend" (onClick)="send()" />
+  </ng-template>
+</p-dialog>

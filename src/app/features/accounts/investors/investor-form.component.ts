@@ -1,4 +1,4 @@
-import { NgTemplateOutlet } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -42,7 +42,7 @@ interface IndexRow {
  */
 @Component({
   selector: 'app-investor-form',
-  imports: [NgTemplateOutlet, FormsModule, RouterLink, ButtonModule, CheckboxModule, InputNumberModule, InputTextModule, RadioButtonModule, SelectModule, TextareaModule],
+  imports: [DatePipe, NgTemplateOutlet, FormsModule, RouterLink, ButtonModule, CheckboxModule, InputNumberModule, InputTextModule, RadioButtonModule, SelectModule, TextareaModule],
   templateUrl: './investor-form.component.html',
   styleUrls: ['../shared/investor-ui.scss', './investor-form.component.scss'],
 })
@@ -56,6 +56,15 @@ export class InvestorFormComponent implements OnInit {
 
   id: string | null = null;
   record: any = null;
+
+  /**
+   * True once NIA has verified the investor's Ghana Card. What came from the
+   * card (name, date of birth, gender, ID details) is then read-only here; the
+   * server ignores changes to those fields as well.
+   */
+  get idLocked(): boolean {
+    return !!this.record?.idVerified;
+  }
   loading = true;
   saving = false;
   newImage: string | null = null;

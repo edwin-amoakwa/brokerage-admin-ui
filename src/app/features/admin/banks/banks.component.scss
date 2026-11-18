@@ -1,0 +1,8 @@
+p-tab i { margin-right: 6px; }
+p-tabpanels { padding: 12px 0 0; background: transparent; }
+
+.bank-picker { margin-bottom: 12px; padding: 14px 16px; }
+// The select keeps its own (inline-flex) layout; only its width is set here.
+.bank-picker__select { width: 100%; max-width: 420px; }
+.bank-picker .field-label { display: block; }
+.bank-picker__hint { margin: 8px 0 0; font-size: 13px; }

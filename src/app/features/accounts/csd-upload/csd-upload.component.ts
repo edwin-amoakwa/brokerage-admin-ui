@@ -7,10 +7,10 @@ import { NotifyService } from '../../../core/notify.service';
 import { StatTile, StatTilesComponent } from '../../../shared/stat-tiles/stat-tiles.component';
 
 /**
- * Bulk import of CSD / depository numbers from the Incomplete Registrations
+ * Bulk import of CSD / depository numbers from the Account Creation
  * Excel export. Ops fills in the CSD_NUMBER column, then uploads the file
  * here. Preview first (dry-run), then import. Opened from a dialog on the
- * Incomplete Registrations page.
+ * Account Creation page.
  */
 @Component({
   selector: 'app-csd-upload',

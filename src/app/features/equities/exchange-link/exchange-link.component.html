@@ -1,0 +1,117 @@
+<app-page-header title="Exchange Link" subtitle="FIX gateway connection, order routing and straight-through processing">
+  <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="loadAll()" />
+</app-page-header>
+
+<app-stat-tiles [tiles]="tiles" />
+
+@if (status.routingEnabled && !status.stpEnabled) {
+  <div class="banner warn">
+    <i class="pi pi-pause-circle"></i>
+    Straight-through processing is off. New orders wait below until the dealing desk releases them to the exchange or keeps them for
+    manual dealing.
+  </div>
+}
+
+<div class="card">
+  <div class="card-title">
+    <h3>Waiting for release</h3>
+    <span class="muted">{{ held.length }} order(s)</span>
+  </div>
+  <p-table [value]="held" dataKey="id" size="small">
+    <ng-template #header>
+      <tr>
+        <th>Order</th><th>Side</th><th>Account</th><th>Stock</th><th>Type</th>
+        <th class="text-right">Quantity</th><th class="text-right">Price</th><th>Held since</th><th>Source</th><th class="actions-col"></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr>
+        <td>{{ row.orderNo }}
+          @if (row.working === false) { <p-tag value="No longer working" severity="secondary" /> }
+        </td>
+        <td><p-tag [value]="row.buySellName" [severity]="side(row.buySell)" /></td>
+        <td>{{ row.accountName }}<div class="muted small">{{ row.accountCode }}</div></td>
+        <td>{{ row.stockSymbol }}</td>
+        <td>{{ row.orderTypeName }}</td>
+        <td class="text-right">{{ row.orderQuantity | number: '1.0-0' }}</td>
+        <td class="text-right">{{ row.orderPrice > 0 ? (row.orderPrice | number: '1.2-4') : '-' }}</td>
+        <td>{{ row.heldSince | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+        <td>{{ row.source || '-' }}</td>
+        <td class="actions-col nowrap">
+          @if (canRelease) {
+            <p-button label="Send to exchange" icon="pi pi-send" size="small" [disabled]="busyId === row.id || !status.routingEnabled"
+                      (onClick)="release(row)" />
+            <p-button label="Keep with desk" icon="pi pi-user" size="small" severity="secondary" [outlined]="true"
+                      [disabled]="busyId === row.id" (onClick)="keep(row)" />
+          }
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr><td colspan="10" class="muted">
+        {{ status.routingEnabled && !status.stpEnabled ? 'No orders are waiting.' : 'Orders only wait here while the exchange link is on and STP is off.' }}
+      </td></tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<div class="card">
+  <div class="card-title">
+    <h3>Settings</h3>
+    @if (!canEdit) { <span class="muted">Read only: changing these needs the Exchange Link Settings permission</span> }
+  </div>
+  <div class="settings-grid">
+    @for (s of settings; track s.name) {
+      <div class="setting">
+        <div class="setting-main">
+          <label [for]="s.name">{{ s.label }}</label>
+          <div class="muted small">{{ s.help }}</div>
+          <div class="muted tiny">
+            {{ s.name }}
+            @if (s.updatedBy) { · last changed by {{ s.updatedBy }} {{ s.updatedAt | date: 'dd/MM/yyyy HH:mm' }} }
+          </div>
+        </div>
+        <div class="setting-input">
+          @switch (s.kind) {
+            @case ('BOOLEAN') {
+              <p-toggleswitch [inputId]="s.name" [(ngModel)]="form[s.name]"
+                              [disabled]="!canEdit || (s.name === 'ORBIT_FIX_STP' && !form['ORBIT_FIX_ROUTING'])" />
+            }
+            @case ('NUMBER') {
+              <p-inputnumber [inputId]="s.name" [(ngModel)]="form[s.name]" [min]="1" [useGrouping]="false" [disabled]="!canEdit" />
+            }
+            @case ('SECRET') {
+              <p-password [inputId]="s.name" [(ngModel)]="form[s.name]" [feedback]="false" [toggleMask]="true" [disabled]="!canEdit"
+                          [placeholder]="s.isSet ? 'Set (leave blank to keep)' : 'Not set'" appendTo="body" />
+            }
+          }
+        </div>
+      </div>
+    }
+  </div>
+  @if (canEdit) {
+    <div class="form-actions">
+      <p-button label="Save settings" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+      <span class="muted small">Changes apply at once. A new gateway token is checked the next time the gateway connects.</span>
+    </div>
+  }
+</div>
+
+<div class="card">
+  <div class="card-title"><h3>Change history</h3></div>
+  <p-table [value]="history" size="small" [paginator]="history.length > 10" [rows]="10">
+    <ng-template #header>
+      <tr><th>When</th><th>Who</th><th>Setting</th><th>From</th><th>To</th></tr>
+    </ng-template>
+    <ng-template #body let-h>
+      <tr>
+        <td>{{ h.changedAt | date: 'dd/MM/yyyy HH:mm:ss' }}</td>
+        <td>{{ h.changedBy }}</td>
+        <td>{{ h.label }}</td>
+        <td>{{ h.oldValue ?? '-' }}</td>
+        <td>{{ h.newValue }}</td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage><tr><td colspan="5" class="muted">No changes yet.</td></tr></ng-template>
+  </p-table>
+</div>
