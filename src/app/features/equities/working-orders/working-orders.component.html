@@ -1,5 +1,8 @@
 @if (!detail) {
   <app-page-header title="Working Orders" subtitle="Orders the market can still fill">
+    <span class="live-pill" [class.on]="live.connected()" [title]="live.connected() ? 'Updates arrive as the exchange and the desk act' : 'Live updates are not connected; use Refresh'">
+      <span class="dot"></span>{{ live.connected() ? 'Live' : 'Not live' }}
+    </span>
     <p-button label="Load" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="reload()" />
     <p-button label="Print" icon="pi pi-print" severity="secondary" [outlined]="true" (onClick)="print()" />
   </app-page-header>

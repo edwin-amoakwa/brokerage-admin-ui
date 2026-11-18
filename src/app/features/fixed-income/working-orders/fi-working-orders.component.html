@@ -1,5 +1,9 @@
 @if (!order) {
-  <app-page-header title="Working Transactions" subtitle="Open fixed income orders: pick one to record its executions" />
+  <app-page-header title="Working Transactions" subtitle="Open fixed income orders: pick one to record its executions">
+    <span class="live-pill" [class.on]="live.connected()" [title]="live.connected() ? 'Updates arrive as the desk records executions' : 'Live updates are not connected; use Refresh'">
+      <span class="dot"></span>{{ live.connected() ? 'Live' : 'Not live' }}
+    </span>
+  </app-page-header>
   <div class="card">
     <div class="table-toolbar">
       <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" (onClick)="reload()" />

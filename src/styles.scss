@@ -148,3 +148,13 @@ p-select.w-full, p-inputnumber.w-full, p-datepicker.w-full, .p-inputnumber.w-ful
 .tag-ok { color: var(--app-ok); }
 .tag-warn { color: var(--app-warn); }
 .tag-bad { color: var(--app-bad); }
+
+/* "Live" indicator for pages fed by the live order stream */
+.live-pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; background: #eef1f0; color: var(--app-muted); white-space: nowrap;
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #b6bfbb; }
+  &.on { background: #e3f3ea; color: var(--app-ok); .dot { background: var(--app-ok); animation: live-pulse 2s ease-in-out infinite; } }
+}
+@keyframes live-pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .live-pill.on .dot { animation: none; } }

@@ -1,5 +1,7 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { LiveOrdersService, OrderChange } from '../../../core/live-orders.service';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputNumberModule } from 'primeng/inputnumber';
@@ -28,9 +30,12 @@ import { orderSeverity, sideSeverity } from '../equities-shared';
   templateUrl: './working-orders.component.html',
   styleUrl: './working-orders.component.scss',
 })
-export class WorkingOrdersComponent {
+export class WorkingOrdersComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private notify = inject(NotifyService);
+  readonly live = inject(LiveOrdersService);
+  private liveSubs: Subscription[] = [];
+  private liveReload: any = null;
 
   rows: any[] = [];
   total = 0;
@@ -48,6 +53,46 @@ export class WorkingOrdersComponent {
 
   severity = orderSeverity;
   side = sideSeverity;
+
+  ngOnInit() {
+    this.live.acquire();
+    this.liveSubs = [
+      this.live.changes$.subscribe((c) => this.onLiveChange(c)),
+      this.live.resync$.subscribe(() => this.refreshFromLive(null)),
+    ];
+  }
+
+  ngOnDestroy() {
+    this.liveSubs.forEach((s) => s.unsubscribe());
+    clearTimeout(this.liveReload);
+    this.live.release();
+  }
+
+  /** An equity order changed: refresh the blotter (once per burst) and the open order, if it is that one. */
+  private onLiveChange(change: OrderChange) {
+    if (change.assetClass !== 'EQUITY') {
+      return;
+    }
+    if (change.actor === 'Exchange' || change.actor === 'FIX gateway') {
+      this.notify.info(change.text || change.label, `Order ${change.orderNo ?? ''}: ${change.label}`);
+    }
+    this.refreshFromLive(change.orderId);
+  }
+
+  private refreshFromLive(orderId: string | null) {
+    clearTimeout(this.liveReload);
+    this.liveReload = setTimeout(async () => {
+      this.load(this.lastEvent);
+      if (this.order && (orderId === null || orderId === this.order.id)) {
+        // Refresh the open order's figures without clearing a fill the desk may be typing.
+        const response = await this.api.get(`working-orders/${this.order.id}`);
+        if (response.success && this.order) {
+          this.detail = response.data;
+          this.order = response.data.order;
+        }
+      }
+    }, 300);
+  }
 
   reload() {
     this.first = 0;

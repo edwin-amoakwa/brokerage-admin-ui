@@ -26,12 +26,17 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (silent) {
     req = req.clone({ headers: req.headers.delete('X-Silent') });
   }
+  // X-Quiet: no toast at all, success or error (background calls such as the live stream token).
+  const quiet = req.headers.has('X-Quiet');
+  if (quiet) {
+    req = req.clone({ headers: req.headers.delete('X-Quiet') });
+  }
 
   const withToken = (request: HttpRequest<any>, token: string | null) =>
     token && isApi && !isPublic ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : request;
 
   const handleSuccess = (event: any) => {
-    if (!(event instanceof HttpResponse) || !isApi || silent) {
+    if (!(event instanceof HttpResponse) || !isApi || silent || quiet) {
       return;
     }
     const body: any = event.body;
@@ -44,7 +49,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   const showError = (error: HttpErrorResponse) => {
     // sign-in and refresh failures are shown by the login screen itself
-    if (!isApi || isPublic) {
+    if (!isApi || isPublic || quiet) {
       return;
     }
     const body: any = error.error;

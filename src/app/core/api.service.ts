@@ -35,6 +35,11 @@ export class ApiService {
     return this.run(this.http.delete<ApiResponse>(this.url(path), { params: toParams(params) }));
   }
 
+  /** A POST that shows no toast at all, success or error (background calls). */
+  postQuiet(path: string, body?: any): Promise<ApiResponse> {
+    return this.run(this.http.post<ApiResponse>(this.url(path), body ?? {}, { headers: { 'X-Quiet': '1' } }));
+  }
+
   /** Like save()/delete(), without the success toast (for follow-up writes after a main save). */
   saveSilent(path: string, record: any): Promise<ApiResponse> {
     const headers = { 'X-Silent': '1' };

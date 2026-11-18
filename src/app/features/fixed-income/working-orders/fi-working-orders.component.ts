@@ -1,5 +1,7 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { LiveOrdersService, OrderChange } from '../../../core/live-orders.service';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -32,7 +34,7 @@ import { FixedIncomeOptionsService, orderStatusSeverity } from '../fixed-income-
   templateUrl: './fi-working-orders.component.html',
   styleUrl: './fi-working-orders.component.scss',
 })
-export class FiWorkingOrdersComponent implements OnInit {
+export class FiWorkingOrdersComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private lookups = inject(LookupService);
   private options = inject(FixedIncomeOptionsService);
@@ -61,7 +63,41 @@ export class FiWorkingOrdersComponent implements OnInit {
     return ['PENDING', 'SUBMITTED', 'PARTIALLY_FILLED'].includes(this.order?.orderStatus) || !!this.tx?.id;
   }
 
+  readonly live = inject(LiveOrdersService);
+  private liveSubs: Subscription[] = [];
+  private liveReload: any = null;
+
+  ngOnDestroy() {
+    this.liveSubs.forEach((s) => s.unsubscribe());
+    clearTimeout(this.liveReload);
+    this.live.release();
+  }
+
+  /** A fixed income order changed: refresh the list (once per burst) and the open order, if it is that one. */
+  private onLiveChange(change: OrderChange) {
+    if (change.assetClass === 'FIXED_INCOME') {
+      this.refreshFromLive(change.orderId);
+    }
+  }
+
+  private refreshFromLive(orderId: string | null) {
+    clearTimeout(this.liveReload);
+    this.liveReload = setTimeout(async () => {
+      this.load(this.lastEvent);
+      if (this.order?.id && (orderId === null || orderId === this.order.id)) {
+        // Refresh the open order and its executions without clearing the execution form.
+        await this.refreshOrder();
+        await this.loadExecutions();
+      }
+    }, 300);
+  }
+
   async ngOnInit() {
+    this.live.acquire();
+    this.liveSubs = [
+      this.live.changes$.subscribe((c) => this.onLiveChange(c)),
+      this.live.resync$.subscribe(() => this.refreshFromLive(null)),
+    ];
     const [markets, execTypes, options] = await Promise.all([this.lookups.enum('FIMarketType'), this.lookups.enum('ExecType'), this.options.load()]);
     this.markets = markets;
     this.execTypes = execTypes;
