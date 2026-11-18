@@ -18,6 +18,7 @@ export const routes: Routes = [
       { path: 'dashboard', loadChildren: () => import('./features/dashboard/dashboard.routes').then((m) => m.DASHBOARD_ROUTES) },
       { path: 'accounts', loadChildren: () => import('./features/accounts/accounts.routes').then((m) => m.ACCOUNTS_ROUTES) },
       { path: 'equities', loadChildren: () => import('./features/equities/equities.routes').then((m) => m.EQUITIES_ROUTES) },
+      { path: 'trading', loadChildren: () => import('./features/trading/trading.routes').then((m) => m.TRADING_ROUTES) },
       { path: 'fixed-income', loadChildren: () => import('./features/fixed-income/fixed-income.routes').then((m) => m.FIXED_INCOME_ROUTES) },
       { path: 'cash', loadChildren: () => import('./features/cash/cash.routes').then((m) => m.CASH_ROUTES) },
       { path: 'history', loadChildren: () => import('./features/history/history.routes').then((m) => m.HISTORY_ROUTES) },

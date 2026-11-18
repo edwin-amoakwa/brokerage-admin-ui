@@ -19,6 +19,7 @@ import { EntityPickerComponent } from '../../../shared/entity-picker/entity-pick
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { ReportViewerComponent } from '../../../shared/report-viewer/report-viewer.component';
 import { StatTile, StatTilesComponent } from '../../../shared/stat-tiles/stat-tiles.component';
+import { OrderTimelineComponent, TimelineEntry } from '../../../shared/order-timeline/order-timeline.component';
 import { orderSeverity, sideSeverity } from '../equities-shared';
 
 /**
@@ -29,7 +30,7 @@ import { orderSeverity, sideSeverity } from '../equities-shared';
 @Component({
   selector: 'app-equity-orders',
   imports: [FormsModule, DatePipe, DecimalPipe, ButtonModule, InputNumberModule, InputTextModule, ProgressBarModule, SelectModule,
-    TableModule, TagModule, TextareaModule, EntityPickerComponent, PageHeaderComponent, ReportViewerComponent, StatTilesComponent],
+    TableModule, TagModule, TextareaModule, EntityPickerComponent, PageHeaderComponent, ReportViewerComponent, StatTilesComponent, OrderTimelineComponent],
   templateUrl: './orders.component.html',
   styleUrl: './orders.component.scss',
 })
@@ -122,8 +123,24 @@ export class EquityOrdersComponent implements OnInit {
     this.priced = null;
   }
 
+  /** The open order's history (trading_activity_log). */
+  history: TimelineEntry[] = [];
+
+  async loadHistory() {
+    const id = this.ticket?.id;
+    this.history = [];
+    if (!id) {
+      return;
+    }
+    const response = await this.api.get(`equity-orders/${id}/timeline`);
+    if (response.success && this.ticket?.id === id) {
+      this.history = response.data || [];
+    }
+  }
+
   edit(row: any) {
     this.ticket = { ...row };
+    this.loadHistory();
     this.account = row.accountId
       ? { id: row.accountId, accountName: row.accountName, accountCode: row.accountCode, displayName: `${row.accountCode} - ${row.accountName}` }
       : null;
@@ -187,6 +204,7 @@ export class EquityOrdersComponent implements OnInit {
       if (response.success) {
         this.ticket = { ...response.data };
         this.priced = null;
+        this.loadHistory();
       }
     }
   }

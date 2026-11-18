@@ -5,7 +5,9 @@
     <div class="head-top">
       <div class="who">
         @if (inv.profileImage) {
-          <img [src]="inv.profileImage" alt="" class="avatar lg" />
+          <button type="button" class="photo-btn" (click)="photoOpen = true" aria-label="View profile photo larger" title="Click to enlarge">
+            <img [src]="inv.profileImage" alt="" class="avatar lg" />
+          </button>
         } @else {
           <span class="avatar lg">{{ inv.initials }}</span>
         }
@@ -313,7 +315,7 @@
         <div class="event">
           <span class="when">{{ e.at | date: 'd MMM y, HH:mm' }}</span>
           <span class="grow">{{ e.description }}{{ e.accountCode ? ' · ' + e.accountCode : '' }}</span>
-          <span class="chip" [class.info]="e.kind === 'contact'">{{ e.kind === 'contact' ? 'Contact log' : 'System' }}</span>
+          <span class="chip" [class.info]="e.kind === 'contact'" [class.ok]="e.kind === 'order'">{{ e.kind === 'contact' ? 'Contact log' : e.kind === 'order' ? 'Order' : 'System' }}</span>
         </div>
       } @empty { <p class="muted">No activity recorded.</p> }
     </section>
@@ -335,3 +337,6 @@
     <p-button label="Change password" [loading]="savingPassword" (onClick)="savePassword()" />
   </ng-template>
 </p-dialog>
+
+<app-image-viewer [src]="photoOpen ? inv?.profileImage : null" [title]="'Profile photo · ' + (inv?.displayName || '')"
+                  (closed)="photoOpen = false" />

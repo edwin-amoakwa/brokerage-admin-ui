@@ -43,6 +43,4 @@ export const ADMIN_ROUTES: Routes = [
   { path: 'bank-branches', redirectTo: 'banks?tab=branches' },
   { path: 'risk-questions', component: RiskQuestionsComponent, data: { permission: 'admin.risk-questions', title: 'Risk Assessment Questions' } },
   { path: 'notifications', component: NotificationsComponent, data: { permission: 'admin.notifications', title: 'Notifications' } },
-  // Messaging Templates was merged into Notifications; old links land there.
-  { path: 'messaging-templates', redirectTo: 'notifications', pathMatch: 'full' },
 ];

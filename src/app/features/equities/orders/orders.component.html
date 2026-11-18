@@ -198,6 +198,16 @@
       </div>
     </div>
   </div>
+
+  @if (ticket.id) {
+    <div class="card history-card">
+      <div class="history-head">
+        <h3>History</h3>
+        <p-button icon="pi pi-refresh" [text]="true" size="small" (onClick)="loadHistory()" ariaLabel="Refresh history" />
+      </div>
+      <app-order-timeline [entries]="history" />
+    </div>
+  }
 }
 
 <app-report-viewer [reportData]="reportData" />

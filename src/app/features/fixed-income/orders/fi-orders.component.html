@@ -43,6 +43,7 @@
         <td class="text-right">{{ row.amountLeft | number: '1.2-2' }}</td>
         <td><p-tag [value]="row.orderStatusName" [severity]="severity(row.orderStatus)" /></td>
         <td class="actions-col">
+          <p-button icon="pi pi-history" [text]="true" size="small" (onClick)="showHistory(row)" ariaLabel="Order history" pTooltip="History" />
           <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="edit(row)" [disabled]="row.orderStatus !== 'PENDING'" ariaLabel="Edit" />
           <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="remove(row)" ariaLabel="Delete" />
         </td>
@@ -124,3 +125,12 @@
 </p-dialog>
 
 <app-report-viewer [reportData]="reportData" />
+
+<p-dialog [header]="'Order ' + (historyOrder?.orderNo || '') + ' history'" [(visible)]="historyVisible" [modal]="true"
+          [dismissableMask]="true" [style]="{ width: '600px', maxWidth: '96vw' }" appendTo="body">
+  @if (historyLoading) {
+    <p class="muted">Loading…</p>
+  } @else {
+    <app-order-timeline [entries]="history" />
+  }
+</p-dialog>

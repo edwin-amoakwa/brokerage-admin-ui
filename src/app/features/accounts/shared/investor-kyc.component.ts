@@ -1,6 +1,7 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ImageViewerComponent } from './image-viewer.component';
 import { KYC_SECTIONS, KycField, KycSection, SectionStatus, STAGE_LABELS, isFilled, sectionStatus, stageOf, visibleFields, withKycExtras } from './investor-kyc';
 
 interface SectionView {
@@ -17,7 +18,7 @@ interface SectionView {
  */
 @Component({
   selector: 'app-investor-kyc',
-  imports: [DatePipe, DecimalPipe, FormsModule],
+  imports: [DatePipe, DecimalPipe, FormsModule, ImageViewerComponent],
   templateUrl: './investor-kyc.component.html',
   styleUrls: ['./investor-ui.scss', './investor-kyc.component.scss'],
 })
@@ -31,6 +32,16 @@ export class InvestorKycComponent implements OnChanges {
 
   onlyGaps = false;
   views: SectionView[] = [];
+  /** The photo or signature open in the zoom dialog. */
+  viewer: { src: string; label: string } | null = null;
+
+  view(src: string, label: string) {
+    this.viewer = { src, label };
+  }
+
+  get viewerTitle(): string {
+    return this.viewer ? `${this.viewer.label} · ${this.investor?.displayName || ''}` : '';
+  }
 
   ngOnChanges() {
     const inv = withKycExtras(this.investor);

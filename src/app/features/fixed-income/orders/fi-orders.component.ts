@@ -1,4 +1,6 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
+import { TooltipModule } from 'primeng/tooltip';
+import { OrderTimelineComponent, TimelineEntry } from '../../../shared/order-timeline/order-timeline.component';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -27,7 +29,7 @@ import { FixedIncomeOptionsService, orderStatusSeverity } from '../fixed-income-
 @Component({
   selector: 'app-fi-orders',
   imports: [FormsModule, DatePipe, DecimalPipe, ButtonModule, DialogModule, InputNumberModule, InputTextModule, SelectModule, TableModule, TagModule,
-    EntityPickerComponent, PageHeaderComponent, ReportViewerComponent],
+    EntityPickerComponent, PageHeaderComponent, ReportViewerComponent, OrderTimelineComponent, TooltipModule],
   templateUrl: './fi-orders.component.html',
   styleUrl: './fi-orders.component.scss',
 })
@@ -88,6 +90,24 @@ export class FiOrdersComponent implements OnInit {
     this.security = null;
     this.quote = null;
     this.dialogVisible = true;
+  }
+
+  /** The order whose history is open (trading_activity_log). */
+  historyOrder: any = null;
+  history: TimelineEntry[] = [];
+  historyVisible = false;
+  historyLoading = false;
+
+  async showHistory(row: any) {
+    this.historyOrder = row;
+    this.history = [];
+    this.historyVisible = true;
+    this.historyLoading = true;
+    const response = await this.api.get(`fixed-income-orders/${row.id}/timeline`);
+    this.historyLoading = false;
+    if (response.success && this.historyOrder?.id === row.id) {
+      this.history = response.data || [];
+    }
   }
 
   edit(row: any) {

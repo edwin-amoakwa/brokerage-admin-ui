@@ -176,7 +176,6 @@ export const LABELS: Record<string, string> = {
   "answer": "Answer",
   "question": "Question",
   "risk_score": "Risk Score",
-  "messaging_template": "Messaging Template",
   "issuers": "Issuers",
   "security_issuer": "Security Issuer",
   "security_code": "Security Code",

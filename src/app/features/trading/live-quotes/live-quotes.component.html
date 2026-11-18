@@ -1,0 +1,113 @@
+<app-page-header title="Live Quotes" subtitle="Latest prices from the exchange feed, updated every few seconds">
+  <label class="auto">
+    <p-toggleswitch [(ngModel)]="autoRefresh" inputId="auto-refresh" />
+    <span>Auto-refresh</span>
+  </label>
+  <p-button label="Refresh" icon="pi pi-refresh" severity="secondary" [outlined]="true" [loading]="loading" (onClick)="refresh()" />
+</app-page-header>
+
+<app-stat-tiles [tiles]="tiles" />
+
+@if (loaded && !feedLive) {
+  <div class="banner warn">
+    <i class="pi pi-exclamation-triangle"></i>
+    @if (!status.connected) {
+      The FIX gateway is not connected, so these are the last quotes received and may be out of date.
+    } @else {
+      The exchange feed is down at the gateway, so these quotes may be out of date.
+    }
+  </div>
+}
+
+<div class="card">
+  <div class="card-title">
+    <h3>Quotes</h3>
+    <span class="muted">
+      {{ shown.length }} of {{ rows.length }} symbol(s)
+      @if (updatedAt) { · updated {{ updatedAt | date: 'HH:mm:ss' }} }
+    </span>
+    <span class="grow"></span>
+    <span class="p-input-icon-left search">
+      <i class="pi pi-search"></i>
+      <input pInputText type="search" [(ngModel)]="search" placeholder="Search symbol or name" aria-label="Search symbol or name" />
+    </span>
+  </div>
+
+  @if (failed && !loaded) {
+    <div class="empty">
+      <i class="pi pi-exclamation-circle"></i>
+      <div class="empty-title">Quotes could not be loaded</div>
+      <p-button label="Try again" size="small" (onClick)="refresh()" />
+    </div>
+  } @else if (loaded && !rows.length) {
+    <div class="empty">
+      <i class="pi pi-chart-line"></i>
+      <div class="empty-title">No quotes yet</div>
+      <div class="muted">
+        @if (!status.connected) { Quotes appear once the FIX gateway connects and the exchange feed starts. }
+        @else { The gateway is connected but has not sent any quotes yet. }
+      </div>
+    </div>
+  } @else {
+    <p-table [value]="shown" dataKey="symbol" size="small" [rowTrackBy]="trackBySymbol" sortField="symbol" [sortOrder]="1"
+             [scrollable]="true" styleClass="quotes" [loading]="loading && !loaded">
+      <ng-template #header>
+        <tr>
+          <th pSortableColumn="symbol" pFrozenColumn>Symbol <p-sortIcon field="symbol" /></th>
+          <th pSortableColumn="lastPrice" class="text-right">Last <p-sortIcon field="lastPrice" /></th>
+          <th pSortableColumn="changePercent" class="text-right">Change <p-sortIcon field="changePercent" /></th>
+          <th class="text-right">Bid</th>
+          <th class="text-right">Ask</th>
+          <th class="text-right">Open</th>
+          <th class="text-right">High</th>
+          <th class="text-right">Low</th>
+          <th class="text-right">Prev close</th>
+          <th pSortableColumn="volume" class="text-right">Volume <p-sortIcon field="volume" /></th>
+          <th>Phase</th>
+          <th pSortableColumn="time">Time <p-sortIcon field="time" /></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-r>
+        <tr [class.stale]="r.stale">
+          <td pFrozenColumn>
+            <div class="sym">{{ r.symbol }}
+              @if (r.stale) { <p-tag value="Stale" severity="secondary" /> }
+            </div>
+            @if (r.name) { <div class="muted small name">{{ r.name }}</div> }
+          </td>
+          <td class="text-right num last" [class.flash-up]="r.flash === 'up'" [class.flash-down]="r.flash === 'down'">
+            {{ r.lastPrice != null ? (r.lastPrice | number: '1.2-4') : '-' }}
+            @if (r.lastQuantity) { <div class="muted small">{{ r.lastQuantity | number: '1.0-0' }}</div> }
+          </td>
+          <td class="text-right num" [class.up]="(r.change ?? 0) > 0" [class.down]="(r.change ?? 0) < 0">
+            @if (r.change != null) {
+              <span class="chg">
+                <i class="pi" [class.pi-arrow-up]="r.change > 0" [class.pi-arrow-down]="r.change < 0" [class.pi-minus]="r.change === 0"></i>
+                {{ r.change | number: '1.2-4' }}
+              </span>
+              <div class="small">{{ r.changePercent != null ? (r.changePercent | number: '1.2-2') + '%' : '' }}</div>
+            } @else { - }
+          </td>
+          <td class="text-right num">
+            {{ r.bidPrice != null ? (r.bidPrice | number: '1.2-4') : '-' }}
+            @if (r.bidSize) { <div class="muted small">{{ r.bidSize | number: '1.0-0' }}</div> }
+          </td>
+          <td class="text-right num">
+            {{ r.askPrice != null ? (r.askPrice | number: '1.2-4') : '-' }}
+            @if (r.askSize) { <div class="muted small">{{ r.askSize | number: '1.0-0' }}</div> }
+          </td>
+          <td class="text-right num">{{ r.open != null ? (r.open | number: '1.2-4') : '-' }}</td>
+          <td class="text-right num">{{ r.high != null ? (r.high | number: '1.2-4') : '-' }}</td>
+          <td class="text-right num">{{ r.low != null ? (r.low | number: '1.2-4') : '-' }}</td>
+          <td class="text-right num">{{ r.prevClose != null ? (r.prevClose | number: '1.2-4') : '-' }}</td>
+          <td class="text-right num">{{ r.volume | number: '1.0-0' }}</td>
+          <td>{{ phaseLabel(r.phase) }}</td>
+          <td class="nowrap muted">{{ r.time ? (r.time | date: 'HH:mm:ss') : '-' }}</td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr><td colspan="12" class="muted">No symbol matches "{{ search }}".</td></tr>
+      </ng-template>
+    </p-table>
+  }
+</div>

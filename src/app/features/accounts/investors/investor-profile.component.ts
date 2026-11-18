@@ -11,6 +11,7 @@ import { NotifyService } from '../../../core/notify.service';
 import { SessionService } from '../../../core/session.service';
 import { FLAG_LABELS, STAGE_LABELS, SectionStatus, kycStatuses, stageOf } from '../shared/investor-kyc';
 import { InvestorKycComponent } from '../shared/investor-kyc.component';
+import { ImageViewerComponent } from '../shared/image-viewer.component';
 
 type Tab = 'overview' | 'kyc' | 'accounts' | 'beneficiaries' | 'bank' | 'activity';
 
@@ -23,11 +24,14 @@ type Tab = 'overview' | 'kyc' | 'accounts' | 'beneficiaries' | 'bank' | 'activit
  */
 @Component({
   selector: 'app-investor-profile',
-  imports: [DatePipe, DecimalPipe, FormsModule, RouterLink, ButtonModule, DialogModule, PasswordModule, ToggleSwitchModule, InvestorKycComponent],
+  imports: [DatePipe, DecimalPipe, FormsModule, RouterLink, ButtonModule, DialogModule, PasswordModule, ToggleSwitchModule, InvestorKycComponent, ImageViewerComponent],
   templateUrl: './investor-profile.component.html',
   styleUrls: ['../shared/investor-ui.scss', './investor-profile.component.scss'],
 })
 export class InvestorProfileComponent implements OnInit {
+  /** The header photo is open in the zoom dialog. */
+  photoOpen = false;
+
   private api = inject(ApiService);
   private notify = inject(NotifyService);
   private session = inject(SessionService);

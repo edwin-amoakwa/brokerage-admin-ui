@@ -24,3 +24,13 @@ dl.grid { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1
 .kyc-image { max-height: 64px; max-width: 160px; border: 1px solid var(--c-line); border-radius: 6px; background: #fff; }
 @media (max-width: 900px) { dl.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { dl.grid { grid-template-columns: 1fr; } }
+
+/* Photo and signature open larger in a zoom dialog. */
+.img-btn { position: relative; display: inline-block; padding: 0; border: 0; background: none; cursor: zoom-in; border-radius: 6px; line-height: 0; }
+.img-btn:focus-visible { outline: 2px solid #0b3c2b; outline-offset: 2px; }
+.img-btn.zoomable > i {
+  position: absolute; right: 4px; bottom: 4px; font-size: 11px; line-height: 1; padding: 4px; border-radius: 50%;
+  background: rgba(11, 60, 43, 0.85); color: #fff; opacity: 0; transition: opacity 0.15s;
+}
+.img-btn.zoomable:hover > i, .img-btn.zoomable:focus-visible > i { opacity: 1; }
+.img-btn:hover .kyc-image { border-color: #0b3c2b; }

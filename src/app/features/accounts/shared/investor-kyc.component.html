@@ -2,7 +2,9 @@
   @if (showHeader) {
     <div class="kyc-head">
       @if (investor.profileImage) {
-        <img [src]="investor.profileImage" alt="" class="avatar" />
+        <button type="button" class="img-btn" (click)="view(investor.profileImage, 'Profile photo')" aria-label="View profile photo larger">
+          <img [src]="investor.profileImage" alt="" class="avatar" />
+        </button>
       } @else {
         <span class="avatar">{{ investor.initials }}</span>
       }
@@ -56,7 +58,15 @@
                     @case ('date') { <dd>{{ f.value | date: 'd MMM y' }}</dd> }
                     @case ('bool') { <dd>{{ f.value ? 'Yes' : 'No' }}</dd> }
                     @case ('money') { <dd>GHS {{ f.value | number: '1.2-2' }}</dd> }
-                    @case ('image') { <dd><img [src]="f.value" [alt]="f.field.label" class="kyc-image" /></dd> }
+                    @case ('image') {
+                      <dd>
+                        <button type="button" class="img-btn zoomable" (click)="view(f.value, f.field.label)"
+                                [attr.aria-label]="'View ' + f.field.label.toLowerCase() + ' larger'" title="Click to enlarge">
+                          <img [src]="f.value" [alt]="f.field.label" class="kyc-image" />
+                          <i class="pi pi-search-plus" aria-hidden="true"></i>
+                        </button>
+                      </dd>
+                    }
                     @default { <dd>{{ f.value }}</dd> }
                   }
                 }
@@ -70,3 +80,5 @@
     </div>
   </div>
 }
+
+<app-image-viewer [src]="viewer?.src ?? null" [title]="viewerTitle" (closed)="viewer = null" />

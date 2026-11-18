@@ -176,6 +176,18 @@ export const MENU: MenuGroup[] = [
     ]
   },
   {
+    "label": "Trading",
+    "icon": "pi pi-chart-bar",
+    "items": [
+      {
+        "label": "Live Quotes",
+        "route": "/trading/live-quotes",
+        "icon": "pi pi-bolt",
+        "permission": "trading.live-quotes"
+      }
+    ]
+  },
+  {
     "label": "Fixed Income",
     "icon": "pi pi-percentage",
     "items": [
