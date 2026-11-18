@@ -20,7 +20,7 @@ export const EQUITIES_ROUTES: Routes = [
   { path: 'execution-processing', component: ExecutionProcessingComponent, data: { permission: 'equities.execution-processing', title: 'Execution Processing' } },
   { path: 'execution-processing/upload', component: ExecutionUploadComponent, data: { permission: 'equities.execution-processing', title: 'Execution Uploads' } },
   { path: 'trades', component: TradesComponent, data: { permission: 'equities.trades', title: 'Trade Records' } },
-  { path: 'executions', component: ExecutionsComponent, data: { permission: 'equities.executions', title: 'Equity Transactions' } },
+  { path: 'executions', component: ExecutionsComponent, data: { permission: 'equities.executions', title: 'Executions' } },
   { path: 'dividends', component: CorporateActionsComponent, data: { permission: 'equities.dividends', title: 'Dividends', kind: 'dividend' } },
   { path: 'dividend-processing', component: CorporateActionProcessingComponent, data: { permission: 'equities.dividend-processing', title: 'Dividend Processing', kind: 'dividend' } },
   { path: 'bonus-issues', component: CorporateActionsComponent, data: { permission: 'equities.bonus-issues', title: 'Bonus Shares', kind: 'bonus' } },

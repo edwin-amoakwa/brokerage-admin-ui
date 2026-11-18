@@ -138,7 +138,7 @@ export const MENU: MenuGroup[] = [
         "permission": "equities.trades"
       },
       {
-        "label": "Equity Transactions",
+        "label": "Executions",
         "route": "/equities/executions",
         "icon": "pi pi-list-check",
         "permission": "equities.executions"
